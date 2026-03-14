@@ -80,7 +80,7 @@ function RecentIncidentRow({ inc }) {
 // ── Hospital Admin Dashboard ───────────────────────────────────────────────────
 function HospitalAdminDashboard({ user }) {
   const [ambulances, setAmbulances] = useState([]);
-  const [hospitals,  setHospitals]  = useState([]);
+  const [myHospital, setMyHospital] = useState(null);
   const [incidents,  setIncidents]  = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -92,8 +92,16 @@ function HospitalAdminDashboard({ user }) {
         listHospitals(),
         listIncidents({ incidentType: 'medical', limit: 10, sort: '-createdAt' }),
       ]);
-      if (ambRes.status  === 'fulfilled') setAmbulances(ambRes.value.data.data?.ambulances ?? []);
-      if (hospRes.status === 'fulfilled') setHospitals(hospRes.value.data.data?.hospitals ?? []);
+      if (ambRes.status  === 'fulfilled') {
+        const all = ambRes.value.data.data?.ambulances ?? [];
+        const orgId = String(user?.organizationId ?? '');
+        setAmbulances(orgId ? all.filter((a) => String(a.hospitalId?._id ?? a.hospitalId) === orgId) : all);
+      }
+      if (hospRes.status === 'fulfilled') {
+        const all = hospRes.value.data.data?.hospitals ?? [];
+        const orgId = String(user?.organizationId ?? '');
+        setMyHospital(orgId ? (all.find((h) => String(h._id) === orgId) ?? null) : null);
+      }
       if (incRes.status  === 'fulfilled') {
         const d = incRes.value.data.data;
         setIncidents(Array.isArray(d) ? d : d?.incidents ?? []);
@@ -113,7 +121,8 @@ function HospitalAdminDashboard({ user }) {
   const resolved     = incidents.filter((i) => i.status === 'resolved').length;
 
   return (
-    <div className="space-y-5 max-w-3xl">
+    <div className="space-y-5">
+      {/* Header — full width */}
       <div className="flex items-center gap-4 bg-emerald-50 border border-emerald-200 rounded-xl px-5 py-4">
         <div className="w-11 h-11 rounded-xl bg-white shadow-sm flex items-center justify-center flex-shrink-0">
           <RiHospitalLine className="text-2xl text-emerald-600" />
@@ -121,55 +130,75 @@ function HospitalAdminDashboard({ user }) {
         <div>
           <p className="text-xs font-medium text-emerald-700 uppercase tracking-wide">Hospital Administration</p>
           <h2 className="text-lg font-bold text-slate-800">{user?.name}</h2>
+          {myHospital && <p className="text-sm text-emerald-700 font-medium">{myHospital.name}</p>}
         </div>
         <button onClick={load} className="ml-auto text-emerald-500 hover:text-emerald-700 p-1 rounded">
           <RiRefreshLine />
         </button>
       </div>
 
+      {/* Stat cards — full width */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
-        <StatCard icon={RiCarLine}      label="Available Ambulances" value={available}        color="text-emerald-600" bg="bg-emerald-50" />
-        <StatCard icon={RiPulseLine}    label="Deployed"             value={dispatched}       color="text-amber-600"   bg="bg-amber-50" />
-        <StatCard icon={RiAlertLine}    label="Open Medical Calls"   value={openCalls}        color="text-red-600"     bg="bg-red-50" />
-        <StatCard icon={RiHospitalLine} label="Hospitals"            value={hospitals.length} color="text-blue-600"    bg="bg-blue-50" />
+        <StatCard icon={RiCarLine}   label="Available Ambulances" value={available}  color="text-emerald-600" bg="bg-emerald-50" />
+        <StatCard icon={RiPulseLine} label="Deployed"             value={dispatched} color="text-amber-600"   bg="bg-amber-50" />
+        <StatCard icon={RiAlertLine} label="Open Medical Calls"   value={openCalls}  color="text-red-600"     bg="bg-red-50" />
+        <StatCard icon={RiCheckLine} label="Calls Resolved"       value={resolved}   color="text-blue-600"    bg="bg-blue-50" />
       </div>
 
-      <div className="bg-white rounded-xl border border-slate-100 shadow-sm px-5 py-4">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="font-semibold text-slate-800 text-sm">Ambulance Fleet Status</h3>
-          <span className="text-xs text-slate-400">{ambulances.length} total</span>
-        </div>
-        {loading
-          ? <LoadingSpinner />
-          : ambulances.length === 0
-            ? <p className="text-xs text-slate-400">No ambulances registered</p>
-            : <FleetBar available={available} dispatched={dispatched} unavailable={outOfService} />
-        }
-      </div>
+      {/* Two-column layout on lg+ */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        {/* Left col */}
+        <div className="space-y-5">
+          {myHospital && (
+            <div className="bg-white rounded-xl border border-slate-100 shadow-sm px-5 py-4">
+              <p className="text-xs text-slate-400 font-medium uppercase tracking-wide mb-3">Bed Capacity</p>
+              <div className="flex items-end gap-2 mb-2">
+                <span className="text-3xl font-bold text-emerald-600">{myHospital.availableBeds}</span>
+                <span className="text-slate-400 text-sm mb-1">/ {myHospital.totalBeds} total</span>
+              </div>
+              <div className="h-2 bg-slate-100 rounded-full overflow-hidden mb-3">
+                <div
+                  className="h-full bg-emerald-400 rounded-full transition-all"
+                  style={{ width: `${Math.min(100, (myHospital.availableBeds / myHospital.totalBeds) * 100)}%` }}
+                />
+              </div>
+              <p className="text-xs text-slate-500">{myHospital.address}</p>
+            </div>
+          )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="sm:col-span-1 bg-emerald-50 border border-emerald-100 rounded-xl p-4 flex flex-col items-center justify-center gap-1">
-          <p className="text-3xl font-bold text-emerald-700">{resolved}</p>
-          <p className="text-xs font-medium text-emerald-600 text-center">Medical calls resolved</p>
-        </div>
-        <div className="sm:col-span-2 grid grid-cols-1 gap-3">
-          <QuickLink to="/resources" icon={RiHospitalLine} label="Hospitals & Fleet" sub="Manage ambulances and beds"   color="text-emerald-600" bg="bg-emerald-50" />
-          <QuickLink to="/live-map"  icon={RiMapPinLine}   label="Live Tracking"     sub="Monitor ambulance dispatches" color="text-slate-600"   bg="bg-slate-50" />
-        </div>
-      </div>
-
-      <div className="bg-white rounded-xl border border-slate-100 shadow-sm">
-        <div className="px-5 py-4 border-b border-slate-100">
-          <h3 className="font-semibold text-slate-800">Recent Medical Calls</h3>
-        </div>
-        {loading ? <LoadingSpinner center /> : (
-          <div className="divide-y divide-slate-50">
-            {incidents.length === 0
-              ? <p className="text-center text-sm text-slate-400 py-8">No medical incidents yet</p>
-              : incidents.slice(0, 6).map((inc) => <RecentIncidentRow key={inc._id} inc={inc} />)
+          <div className="bg-white rounded-xl border border-slate-100 shadow-sm px-5 py-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold text-slate-800 text-sm">Ambulance Fleet</h3>
+              <span className="text-xs text-slate-400">{ambulances.length} total</span>
+            </div>
+            {loading
+              ? <LoadingSpinner />
+              : ambulances.length === 0
+                ? <p className="text-xs text-slate-400">No ambulances registered</p>
+                : <FleetBar available={available} dispatched={dispatched} unavailable={outOfService} />
             }
           </div>
-        )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-3">
+            <QuickLink to="/resources" icon={RiHospitalLine} label="Hospitals & Fleet" sub="Manage ambulances and beds"   color="text-emerald-600" bg="bg-emerald-50" />
+            <QuickLink to="/live-map"  icon={RiMapPinLine}   label="Live Tracking"     sub="Monitor ambulance dispatches" color="text-slate-600"   bg="bg-slate-50" />
+          </div>
+        </div>
+
+        {/* Right col */}
+        <div className="bg-white rounded-xl border border-slate-100 shadow-sm flex flex-col">
+          <div className="px-5 py-4 border-b border-slate-100">
+            <h3 className="font-semibold text-slate-800">Recent Medical Calls</h3>
+          </div>
+          {loading ? <LoadingSpinner center /> : (
+            <div className="divide-y divide-slate-50 flex-1">
+              {incidents.length === 0
+                ? <p className="text-center text-sm text-slate-400 py-10">No medical incidents yet</p>
+                : incidents.slice(0, 8).map((inc) => <RecentIncidentRow key={inc._id} inc={inc} />)
+              }
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -177,7 +206,7 @@ function HospitalAdminDashboard({ user }) {
 
 // ── Police Admin Dashboard ─────────────────────────────────────────────────────
 function PoliceAdminDashboard({ user }) {
-  const [stations,  setStations]  = useState([]);
+  const [myStation, setMyStation] = useState(null);
   const [incidents, setIncidents] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -188,7 +217,11 @@ function PoliceAdminDashboard({ user }) {
         listPoliceStations(),
         listIncidents({ incidentType: 'crime', limit: 10, sort: '-createdAt' }),
       ]);
-      if (stRes.status  === 'fulfilled') setStations(stRes.value.data.data?.stations ?? []);
+      if (stRes.status === 'fulfilled') {
+        const all = stRes.value.data.data?.stations ?? [];
+        const orgId = String(user?.organizationId ?? '');
+        setMyStation(orgId ? (all.find((s) => String(s._id) === orgId) ?? null) : null);
+      }
       if (incRes.status === 'fulfilled') {
         const d = incRes.value.data.data;
         setIncidents(Array.isArray(d) ? d : d?.incidents ?? []);
@@ -200,13 +233,12 @@ function PoliceAdminDashboard({ user }) {
 
   useEffect(() => { load(); }, []);
 
-  const activeStations = stations.filter((s) => s.status === 'active').length;
   const openCalls = incidents.filter((i) =>
     ['created', 'dispatched', 'in_progress'].includes(i.status)).length;
   const resolved = incidents.filter((i) => i.status === 'resolved').length;
 
   return (
-    <div className="space-y-5 max-w-3xl">
+    <div className="space-y-5">
       <div className="flex items-center gap-4 bg-blue-50 border border-blue-200 rounded-xl px-5 py-4">
         <div className="w-11 h-11 rounded-xl bg-white shadow-sm flex items-center justify-center flex-shrink-0">
           <RiShieldLine className="text-2xl text-blue-600" />
@@ -214,6 +246,7 @@ function PoliceAdminDashboard({ user }) {
         <div>
           <p className="text-xs font-medium text-blue-700 uppercase tracking-wide">Police Administration</p>
           <h2 className="text-lg font-bold text-slate-800">{user?.name}</h2>
+          {myStation && <p className="text-sm text-blue-700 font-medium">{myStation.name}</p>}
         </div>
         <button onClick={load} className="ml-auto text-blue-500 hover:text-blue-700 p-1 rounded">
           <RiRefreshLine />
@@ -221,51 +254,46 @@ function PoliceAdminDashboard({ user }) {
       </div>
 
       <div className="grid grid-cols-2 xl:grid-cols-3 gap-4">
-        <StatCard icon={RiShieldLine} label="Police Stations"  value={activeStations} color="text-blue-600"    bg="bg-blue-50" />
-        <StatCard icon={RiAlertLine}  label="Open Crime Calls" value={openCalls}      color="text-amber-600"   bg="bg-amber-50" />
-        <StatCard icon={RiCheckLine}  label="Resolved Crimes"  value={resolved}       color="text-emerald-600" bg="bg-emerald-50" />
+        <StatCard icon={RiShieldLine} label="Station Status"   value={myStation ? (myStation.status ?? 'active') : '—'} color="text-blue-600"    bg="bg-blue-50" />
+        <StatCard icon={RiAlertLine}  label="Open Crime Calls" value={openCalls}                                         color="text-amber-600"   bg="bg-amber-50" />
+        <StatCard icon={RiCheckLine}  label="Resolved"         value={resolved}                                          color="text-emerald-600" bg="bg-emerald-50" />
       </div>
 
-      <div className="bg-white rounded-xl border border-slate-100 shadow-sm">
-        <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-          <h3 className="font-semibold text-slate-800">Police Stations</h3>
-          <span className="text-xs text-slate-400">{stations.length} stations</span>
-        </div>
-        {loading ? <LoadingSpinner center /> : (
-          <div className="divide-y divide-slate-50">
-            {stations.length === 0
-              ? <p className="text-center text-sm text-slate-400 py-8">No stations registered</p>
-              : stations.slice(0, 5).map((st) => (
-                <div key={st._id} className="px-5 py-3 flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-slate-800">{st.name}</p>
-                    <p className="text-xs text-slate-400 truncate max-w-[240px]">{st.address}</p>
-                  </div>
-                  <Badge value={st.status} />
-                </div>
-              ))
-            }
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        {/* Left col */}
+        <div className="space-y-5">
+          {myStation && (
+            <div className="bg-white rounded-xl border border-slate-100 shadow-sm px-5 py-4">
+              <p className="text-xs text-slate-400 font-medium uppercase tracking-wide mb-3">My Station</p>
+              <p className="text-base font-bold text-slate-800 mb-1">{myStation.name}</p>
+              <p className="text-sm text-slate-500">{myStation.address}</p>
+              {myStation.region && <p className="text-xs text-slate-400 mt-1">Region: {myStation.region}</p>}
+              <div className="mt-3">
+                <Badge value={myStation.status ?? 'active'} />
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-3">
+            <QuickLink to="/resources" icon={RiShieldLine} label="My Station"    sub="View station details"            color="text-blue-600" bg="bg-blue-50" />
+            <QuickLink to="/live-map"  icon={RiMapPinLine} label="Live Tracking" sub="Monitor active police responses" color="text-slate-600" bg="bg-slate-50" />
           </div>
-        )}
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <QuickLink to="/resources" icon={RiShieldLine} label="Police Stations" sub="Manage stations and officers"    color="text-blue-600" bg="bg-blue-50" />
-        <QuickLink to="/live-map"  icon={RiMapPinLine} label="Live Tracking"   sub="Monitor active police responses" color="text-slate-600" bg="bg-slate-50" />
-      </div>
-
-      <div className="bg-white rounded-xl border border-slate-100 shadow-sm">
-        <div className="px-5 py-4 border-b border-slate-100">
-          <h3 className="font-semibold text-slate-800">Recent Crime Calls</h3>
         </div>
-        {loading ? <LoadingSpinner center /> : (
-          <div className="divide-y divide-slate-50">
-            {incidents.length === 0
-              ? <p className="text-center text-sm text-slate-400 py-8">No crime incidents yet</p>
-              : incidents.slice(0, 6).map((inc) => <RecentIncidentRow key={inc._id} inc={inc} />)
-            }
+
+        {/* Right col */}
+        <div className="bg-white rounded-xl border border-slate-100 shadow-sm flex flex-col">
+          <div className="px-5 py-4 border-b border-slate-100">
+            <h3 className="font-semibold text-slate-800">Recent Crime Calls</h3>
           </div>
-        )}
+          {loading ? <LoadingSpinner center /> : (
+            <div className="divide-y divide-slate-50 flex-1">
+              {incidents.length === 0
+                ? <p className="text-center text-sm text-slate-400 py-10">No crime incidents yet</p>
+                : incidents.slice(0, 8).map((inc) => <RecentIncidentRow key={inc._id} inc={inc} />)
+              }
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -273,7 +301,7 @@ function PoliceAdminDashboard({ user }) {
 
 // ── Fire Admin Dashboard ───────────────────────────────────────────────────────
 function FireAdminDashboard({ user }) {
-  const [stations,  setStations]  = useState([]);
+  const [myStation, setMyStation] = useState(null);
   const [incidents, setIncidents] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -284,7 +312,11 @@ function FireAdminDashboard({ user }) {
         listFireStations(),
         listIncidents({ incidentType: 'fire', limit: 10, sort: '-createdAt' }),
       ]);
-      if (stRes.status  === 'fulfilled') setStations(stRes.value.data.data?.stations ?? []);
+      if (stRes.status === 'fulfilled') {
+        const all = stRes.value.data.data?.stations ?? [];
+        const orgId = String(user?.organizationId ?? '');
+        setMyStation(orgId ? (all.find((s) => String(s._id) === orgId) ?? null) : null);
+      }
       if (incRes.status === 'fulfilled') {
         const d = incRes.value.data.data;
         setIncidents(Array.isArray(d) ? d : d?.incidents ?? []);
@@ -296,13 +328,12 @@ function FireAdminDashboard({ user }) {
 
   useEffect(() => { load(); }, []);
 
-  const activeStations = stations.filter((s) => s.status === 'active').length;
   const openCalls = incidents.filter((i) =>
     ['created', 'dispatched', 'in_progress'].includes(i.status)).length;
   const resolved = incidents.filter((i) => i.status === 'resolved').length;
 
   return (
-    <div className="space-y-5 max-w-3xl">
+    <div className="space-y-5">
       <div className="flex items-center gap-4 bg-orange-50 border border-orange-200 rounded-xl px-5 py-4">
         <div className="w-11 h-11 rounded-xl bg-white shadow-sm flex items-center justify-center flex-shrink-0">
           <RiFireLine className="text-2xl text-orange-600" />
@@ -310,6 +341,7 @@ function FireAdminDashboard({ user }) {
         <div>
           <p className="text-xs font-medium text-orange-700 uppercase tracking-wide">Fire Service Administration</p>
           <h2 className="text-lg font-bold text-slate-800">{user?.name}</h2>
+          {myStation && <p className="text-sm text-orange-700 font-medium">{myStation.name}</p>}
         </div>
         <button onClick={load} className="ml-auto text-orange-500 hover:text-orange-700 p-1 rounded">
           <RiRefreshLine />
@@ -317,51 +349,46 @@ function FireAdminDashboard({ user }) {
       </div>
 
       <div className="grid grid-cols-2 xl:grid-cols-3 gap-4">
-        <StatCard icon={RiFireLine}  label="Fire Stations"      value={activeStations} color="text-orange-600"  bg="bg-orange-50" />
-        <StatCard icon={RiAlertLine} label="Active Fire Calls"  value={openCalls}      color="text-red-600"     bg="bg-red-50" />
-        <StatCard icon={RiCheckLine} label="Incidents Resolved" value={resolved}       color="text-emerald-600" bg="bg-emerald-50" />
+        <StatCard icon={RiFireLine}  label="Station Status"     value={myStation ? (myStation.status ?? 'active') : '—'} color="text-orange-600"  bg="bg-orange-50" />
+        <StatCard icon={RiAlertLine} label="Active Fire Calls"  value={openCalls}                                         color="text-red-600"     bg="bg-red-50" />
+        <StatCard icon={RiCheckLine} label="Incidents Resolved" value={resolved}                                          color="text-emerald-600" bg="bg-emerald-50" />
       </div>
 
-      <div className="bg-white rounded-xl border border-slate-100 shadow-sm">
-        <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-          <h3 className="font-semibold text-slate-800">Fire Stations</h3>
-          <span className="text-xs text-slate-400">{stations.length} stations</span>
-        </div>
-        {loading ? <LoadingSpinner center /> : (
-          <div className="divide-y divide-slate-50">
-            {stations.length === 0
-              ? <p className="text-center text-sm text-slate-400 py-8">No stations registered</p>
-              : stations.slice(0, 5).map((st) => (
-                <div key={st._id} className="px-5 py-3 flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-slate-800">{st.name}</p>
-                    <p className="text-xs text-slate-400 truncate max-w-[240px]">{st.address}</p>
-                  </div>
-                  <Badge value={st.status} />
-                </div>
-              ))
-            }
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        {/* Left col */}
+        <div className="space-y-5">
+          {myStation && (
+            <div className="bg-white rounded-xl border border-slate-100 shadow-sm px-5 py-4">
+              <p className="text-xs text-slate-400 font-medium uppercase tracking-wide mb-3">My Station</p>
+              <p className="text-base font-bold text-slate-800 mb-1">{myStation.name}</p>
+              <p className="text-sm text-slate-500">{myStation.address}</p>
+              {myStation.region && <p className="text-xs text-slate-400 mt-1">Region: {myStation.region}</p>}
+              <div className="mt-3">
+                <Badge value={myStation.status ?? 'active'} />
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-3">
+            <QuickLink to="/resources" icon={RiFireLine}   label="My Station"    sub="View station details"           color="text-orange-600" bg="bg-orange-50" />
+            <QuickLink to="/live-map"  icon={RiMapPinLine} label="Live Tracking" sub="Monitor active fire responses"  color="text-slate-600"  bg="bg-slate-50" />
           </div>
-        )}
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <QuickLink to="/resources" icon={RiFireLine}   label="Fire Stations" sub="Manage stations and personnel" color="text-orange-600" bg="bg-orange-50" />
-        <QuickLink to="/live-map"  icon={RiMapPinLine} label="Live Tracking" sub="Monitor active fire responses" color="text-slate-600"  bg="bg-slate-50" />
-      </div>
-
-      <div className="bg-white rounded-xl border border-slate-100 shadow-sm">
-        <div className="px-5 py-4 border-b border-slate-100">
-          <h3 className="font-semibold text-slate-800">Recent Fire Calls</h3>
         </div>
-        {loading ? <LoadingSpinner center /> : (
-          <div className="divide-y divide-slate-50">
-            {incidents.length === 0
-              ? <p className="text-center text-sm text-slate-400 py-8">No fire incidents yet</p>
-              : incidents.slice(0, 6).map((inc) => <RecentIncidentRow key={inc._id} inc={inc} />)
-            }
+
+        {/* Right col */}
+        <div className="bg-white rounded-xl border border-slate-100 shadow-sm flex flex-col">
+          <div className="px-5 py-4 border-b border-slate-100">
+            <h3 className="font-semibold text-slate-800">Recent Fire Calls</h3>
           </div>
-        )}
+          {loading ? <LoadingSpinner center /> : (
+            <div className="divide-y divide-slate-50 flex-1">
+              {incidents.length === 0
+                ? <p className="text-center text-sm text-slate-400 py-10">No fire incidents yet</p>
+                : incidents.slice(0, 8).map((inc) => <RecentIncidentRow key={inc._id} inc={inc} />)
+              }
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -403,7 +430,7 @@ function DriverDashboard({ user }) {
   };
 
   return (
-    <div className="space-y-5 max-w-xl">
+    <div className="space-y-5 max-w-2xl">
       <div className="flex items-center gap-4 bg-amber-50 border border-amber-200 rounded-xl px-5 py-4">
         <div className="w-11 h-11 rounded-xl bg-white shadow-sm flex items-center justify-center flex-shrink-0">
           <RiCarLine className="text-2xl text-amber-600" />
