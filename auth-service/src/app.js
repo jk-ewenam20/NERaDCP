@@ -12,6 +12,11 @@ const authRoutes = require('./routes/auth.routes');
 
 const app = express();
 
+// Trust the first proxy (nginx gateway) so req.ip reflects the real client IP.
+// Without this, express-rate-limit sees every request coming from the gateway's
+// IP and buckets all users together, hitting the limit almost immediately.
+app.set('trust proxy', 1);
+
 // ── Security & Middleware ─────────────────────────────────────────────────────
 app.use(helmet());
 app.use(cors());
