@@ -79,7 +79,7 @@ export default function Profile() {
   const inputCls = 'w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white';
 
   return (
-    <div className="max-w-2xl space-y-5">
+    <div className="max-w-2xl mx-auto space-y-5">
       {/* Header card */}
       <div className={`rounded-2xl border p-6 flex items-center gap-5 ${meta.bg} border-slate-200`}>
         <div className="w-16 h-16 rounded-2xl bg-white shadow-sm flex items-center justify-center flex-shrink-0">
