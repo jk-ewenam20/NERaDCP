@@ -1,3 +1,8 @@
+# Re-resolve upstream hostnames on every request via Google DNS.
+# Required when proxy_pass uses a variable (which enables per-request resolution
+# instead of caching the IP at startup - important for Render's load balancers).
+resolver 8.8.8.8 8.8.4.4 ipv6=off valid=30s;
+
 server {
     listen ${PORT};
 
@@ -34,7 +39,8 @@ server {
         add_header 'Access-Control-Allow-Origin'  '${FRONTEND_URL}' always;
         add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, PATCH, OPTIONS' always;
         add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type' always;
-        proxy_pass       ${AUTH_SERVICE_URL};
+        set $auth ${AUTH_SERVICE_URL};
+        proxy_pass       $auth;
         proxy_set_header Host              $proxy_host;
         proxy_set_header X-Real-IP         $remote_addr;
         proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
@@ -53,7 +59,8 @@ server {
         add_header 'Access-Control-Allow-Origin'  '${FRONTEND_URL}' always;
         add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, PATCH, OPTIONS' always;
         add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type' always;
-        proxy_pass       ${ANALYTICS_SERVICE_URL};
+        set $analytics ${ANALYTICS_SERVICE_URL};
+        proxy_pass       $analytics;
         proxy_set_header Host              $proxy_host;
         proxy_set_header X-Real-IP         $remote_addr;
         proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
@@ -70,7 +77,8 @@ server {
             return 204;
         }
         add_header 'Access-Control-Allow-Origin' '${FRONTEND_URL}' always;
-        proxy_pass          ${TRACKING_SERVICE_URL};
+        set $tracking ${TRACKING_SERVICE_URL};
+        proxy_pass          $tracking;
         proxy_http_version  1.1;
         proxy_set_header    Upgrade     $http_upgrade;
         proxy_set_header    Connection  "upgrade";
@@ -90,7 +98,8 @@ server {
         add_header 'Access-Control-Allow-Origin'  '${FRONTEND_URL}' always;
         add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, PATCH, OPTIONS' always;
         add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type' always;
-        proxy_pass       ${TRACKING_SERVICE_URL};
+        set $tracking ${TRACKING_SERVICE_URL};
+        proxy_pass       $tracking;
         proxy_set_header Host              $proxy_host;
         proxy_set_header X-Real-IP         $remote_addr;
         proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
@@ -109,7 +118,8 @@ server {
         add_header 'Access-Control-Allow-Origin'  '${FRONTEND_URL}' always;
         add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, PATCH, OPTIONS' always;
         add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type' always;
-        proxy_pass       ${INCIDENT_SERVICE_URL};
+        set $incident ${INCIDENT_SERVICE_URL};
+        proxy_pass       $incident;
         proxy_set_header Host              $proxy_host;
         proxy_set_header X-Real-IP         $remote_addr;
         proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
