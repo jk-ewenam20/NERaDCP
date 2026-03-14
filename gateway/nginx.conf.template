@@ -1,6 +1,12 @@
 server {
     listen ${PORT};
 
+    # Health check / root - returns 200 so Render's health probe passes
+    location = / {
+        return 200 'ok';
+        add_header Content-Type text/plain;
+    }
+
     # Increase timeouts for cold-start wake-up on free tier
     proxy_connect_timeout 60s;
     proxy_read_timeout    60s;
