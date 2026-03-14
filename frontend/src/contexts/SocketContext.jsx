@@ -18,11 +18,10 @@ export function SocketProvider({ children }) {
     const socket = io(wsUrl, {
       path: '/socket.io',
       auth: { token },
-      // polling first: avoids Vite ws-proxy ECONNABORTED when tracking service
-      // is down.  Socket.io upgrades to WebSocket automatically once the HTTP
-      // handshake succeeds, so real-time performance is unchanged when the
-      // service IS running.
-      transports: ['polling', 'websocket'],
+      // WebSocket-only: Render free tier has no sticky sessions, so polling
+      // transport causes 400s when sequential HTTP requests land on different
+      // instances. WebSocket uses a single persistent connection — no stickiness needed.
+      transports: ['websocket'],
       reconnectionAttempts: 8,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 10000,
