@@ -1,23 +1,25 @@
+# Re-resolve upstream hostnames per request instead of caching at startup.
+# Required when proxy_pass uses a variable.
+resolver 8.8.8.8 ipv6=off valid=30s;
+
 server {
     listen ${PORT};
 
-    # ── CORS ─────────────────────────────────────────────────────────────────
-    # Strip any CORS headers the upstream services set to avoid duplicates
+    # Generous timeouts to survive free-tier cold starts (30-50 s wake-up)
+    proxy_connect_timeout  90s;
+    proxy_read_timeout     90s;
+    proxy_send_timeout     90s;
+
+    # Skip SSL certificate verification for upstream Render services.
+    # SNI is still sent so the upstream picks the right certificate.
+    proxy_ssl_verify      off;
+    proxy_ssl_server_name on;
+
+    # Strip upstream CORS headers so we can set our own without duplicates
     proxy_hide_header Access-Control-Allow-Origin;
     proxy_hide_header Access-Control-Allow-Methods;
     proxy_hide_header Access-Control-Allow-Headers;
     proxy_hide_header Access-Control-Allow-Credentials;
-
-    # Set CORS headers on every response (always = includes error responses)
-    add_header 'Access-Control-Allow-Origin'  '${FRONTEND_URL}' always;
-    add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, PATCH, OPTIONS' always;
-    add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type' always;
-    add_header 'Access-Control-Max-Age'       '86400' always;
-
-    # ── Timeouts (generous for free-tier cold starts) ─────────────────────────
-    proxy_connect_timeout 60s;
-    proxy_read_timeout    60s;
-    proxy_send_timeout    60s;
 
     # ── Health check ──────────────────────────────────────────────────────────
     location = / {
@@ -27,57 +29,112 @@ server {
 
     # ── Auth Service ──────────────────────────────────────────────────────────
     location /api/v1/auth/ {
-        if ($request_method = 'OPTIONS') { return 204; }
-        proxy_pass            ${AUTH_SERVICE_URL};
-        proxy_ssl_server_name on;
-        proxy_set_header      Host              $proxy_host;
-        proxy_set_header      X-Real-IP         $remote_addr;
-        proxy_set_header      X-Forwarded-For   $proxy_add_x_forwarded_for;
-        proxy_set_header      X-Forwarded-Proto $scheme;
+        # OPTIONS preflight - must add CORS headers inside the if block because
+        # server-level add_header is not inherited by if-block responses
+        if ($request_method = 'OPTIONS') {
+            add_header 'Access-Control-Allow-Origin'  '${FRONTEND_URL}';
+            add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, PATCH, OPTIONS';
+            add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type';
+            add_header 'Access-Control-Max-Age'       '86400';
+            return 204;
+        }
+
+        add_header 'Access-Control-Allow-Origin'  '${FRONTEND_URL}' always;
+        add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, PATCH, OPTIONS' always;
+        add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type' always;
+
+        set $upstream ${AUTH_SERVICE_URL};
+        proxy_pass       $upstream;
+        proxy_set_header Host              $proxy_host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
     }
 
     # ── Analytics Service ─────────────────────────────────────────────────────
     location /api/v1/analytics/ {
-        if ($request_method = 'OPTIONS') { return 204; }
-        proxy_pass            ${ANALYTICS_SERVICE_URL};
-        proxy_ssl_server_name on;
-        proxy_set_header      Host              $proxy_host;
-        proxy_set_header      X-Real-IP         $remote_addr;
-        proxy_set_header      X-Forwarded-For   $proxy_add_x_forwarded_for;
-        proxy_set_header      X-Forwarded-Proto $scheme;
+        if ($request_method = 'OPTIONS') {
+            add_header 'Access-Control-Allow-Origin'  '${FRONTEND_URL}';
+            add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, PATCH, OPTIONS';
+            add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type';
+            add_header 'Access-Control-Max-Age'       '86400';
+            return 204;
+        }
+
+        add_header 'Access-Control-Allow-Origin'  '${FRONTEND_URL}' always;
+        add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, PATCH, OPTIONS' always;
+        add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type' always;
+
+        set $upstream ${ANALYTICS_SERVICE_URL};
+        proxy_pass       $upstream;
+        proxy_set_header Host              $proxy_host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
     }
 
     # ── Tracking Service - WebSocket ──────────────────────────────────────────
     location /socket.io/ {
-        if ($request_method = 'OPTIONS') { return 204; }
-        proxy_pass            ${TRACKING_SERVICE_URL};
-        proxy_ssl_server_name on;
-        proxy_http_version    1.1;
-        proxy_set_header      Upgrade     $http_upgrade;
-        proxy_set_header      Connection  "upgrade";
-        proxy_set_header      Host        $proxy_host;
-        proxy_cache_bypass    $http_upgrade;
+        if ($request_method = 'OPTIONS') {
+            add_header 'Access-Control-Allow-Origin'  '${FRONTEND_URL}';
+            add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, PATCH, OPTIONS';
+            add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type';
+            add_header 'Access-Control-Max-Age'       '86400';
+            return 204;
+        }
+
+        add_header 'Access-Control-Allow-Origin'  '${FRONTEND_URL}' always;
+
+        set $upstream ${TRACKING_SERVICE_URL};
+        proxy_pass          $upstream;
+        proxy_http_version  1.1;
+        proxy_set_header    Upgrade     $http_upgrade;
+        proxy_set_header    Connection  "upgrade";
+        proxy_set_header    Host        $proxy_host;
+        proxy_cache_bypass  $http_upgrade;
     }
 
     # ── Tracking Service - REST ───────────────────────────────────────────────
     location /api/v1/tracking/ {
-        if ($request_method = 'OPTIONS') { return 204; }
-        proxy_pass            ${TRACKING_SERVICE_URL};
-        proxy_ssl_server_name on;
-        proxy_set_header      Host              $proxy_host;
-        proxy_set_header      X-Real-IP         $remote_addr;
-        proxy_set_header      X-Forwarded-For   $proxy_add_x_forwarded_for;
-        proxy_set_header      X-Forwarded-Proto $scheme;
+        if ($request_method = 'OPTIONS') {
+            add_header 'Access-Control-Allow-Origin'  '${FRONTEND_URL}';
+            add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, PATCH, OPTIONS';
+            add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type';
+            add_header 'Access-Control-Max-Age'       '86400';
+            return 204;
+        }
+
+        add_header 'Access-Control-Allow-Origin'  '${FRONTEND_URL}' always;
+        add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, PATCH, OPTIONS' always;
+        add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type' always;
+
+        set $upstream ${TRACKING_SERVICE_URL};
+        proxy_pass       $upstream;
+        proxy_set_header Host              $proxy_host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
     }
 
     # ── Incident Service - catch-all ──────────────────────────────────────────
     location /api/v1/ {
-        if ($request_method = 'OPTIONS') { return 204; }
-        proxy_pass            ${INCIDENT_SERVICE_URL};
-        proxy_ssl_server_name on;
-        proxy_set_header      Host              $proxy_host;
-        proxy_set_header      X-Real-IP         $remote_addr;
-        proxy_set_header      X-Forwarded-For   $proxy_add_x_forwarded_for;
-        proxy_set_header      X-Forwarded-Proto $scheme;
+        if ($request_method = 'OPTIONS') {
+            add_header 'Access-Control-Allow-Origin'  '${FRONTEND_URL}';
+            add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, PATCH, OPTIONS';
+            add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type';
+            add_header 'Access-Control-Max-Age'       '86400';
+            return 204;
+        }
+
+        add_header 'Access-Control-Allow-Origin'  '${FRONTEND_URL}' always;
+        add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, PATCH, OPTIONS' always;
+        add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type' always;
+
+        set $upstream ${INCIDENT_SERVICE_URL};
+        proxy_pass       $upstream;
+        proxy_set_header Host              $proxy_host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
     }
 }
