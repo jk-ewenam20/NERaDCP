@@ -1,32 +1,32 @@
 {
-  "routes": [
+  "rewrites": [
     {
-      "src": "/api/v1/auth/(.*)",
-      "dest": "https://neradcp-auth.onrender.com/api/v1/auth/$1"
+      "source": "/api/v1/auth/:path*",
+      "destination": "https://neradcp-auth.onrender.com/api/v1/auth/:path*"
     },
     {
-      "src": "/api/v1/analytics/(.*)",
-      "dest": "https://neradcp-analytics.onrender.com/api/v1/analytics/$1"
+      "source": "/api/v1/analytics/:path*",
+      "destination": "https://neradcp-analytics.onrender.com/api/v1/analytics/:path*"
     },
     {
-      "src": "/api/v1/tracking/(.*)",
-      "dest": "https://neradcp-tracking.onrender.com/api/v1/tracking/$1"
+      "source": "/api/v1/tracking/:path*",
+      "destination": "https://neradcp-tracking.onrender.com/api/v1/tracking/:path*"
     },
     {
-      "src": "/api/v1/vehicles(.*)",
-      "dest": "https://neradcp-tracking.onrender.com/api/v1/vehicles$1"
+      "source": "/api/v1/vehicles/:path*",
+      "destination": "https://neradcp-tracking.onrender.com/api/v1/vehicles/:path*"
     },
     {
-      "src": "/api/v1/dispatches(.*)",
-      "dest": "https://neradcp-tracking.onrender.com/api/v1/dispatches$1"
+      "source": "/api/v1/dispatches/:path*",
+      "destination": "https://neradcp-tracking.onrender.com/api/v1/dispatches/:path*"
     },
     {
-      "src": "/api/v1/(.*)",
-      "dest": "https://neradcp-incident.onrender.com/api/v1/$1"
+      "source": "/api/v1/:path*",
+      "destination": "https://neradcp-incident.onrender.com/api/v1/:path*"
     },
     {
-      "src": "/(.*)",
-      "dest": "/index.html"
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }
