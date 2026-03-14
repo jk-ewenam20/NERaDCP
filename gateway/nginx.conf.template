@@ -1,21 +1,15 @@
-# Re-resolve upstream hostnames on every request via Google DNS.
-# Required when proxy_pass uses a variable (which enables per-request resolution
-# instead of caching the IP at startup - important for Render's load balancers).
 resolver 8.8.8.8 8.8.4.4 ipv6=off valid=30s;
 
 server {
     listen ${PORT};
 
-    # Generous timeouts to survive free-tier cold starts (30-50 s wake-up)
     proxy_connect_timeout  90s;
     proxy_read_timeout     90s;
     proxy_send_timeout     90s;
 
-    # SSL settings for HTTPS upstreams
     proxy_ssl_verify      off;
     proxy_ssl_server_name on;
 
-    # Strip upstream CORS headers so we set our own without duplicates
     proxy_hide_header Access-Control-Allow-Origin;
     proxy_hide_header Access-Control-Allow-Methods;
     proxy_hide_header Access-Control-Allow-Headers;
@@ -39,12 +33,14 @@ server {
         add_header 'Access-Control-Allow-Origin'  '${FRONTEND_URL}' always;
         add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, PATCH, OPTIONS' always;
         add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type' always;
-        set $auth ${AUTH_SERVICE_URL};
-        proxy_pass       $auth;
-        proxy_set_header Host              $proxy_host;
-        proxy_set_header X-Real-IP         $remote_addr;
-        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+
+        set $upstream ${AUTH_SERVICE_URL};
+        proxy_pass        $upstream;
+        proxy_ssl_name    ${AUTH_SERVICE_HOST};
+        proxy_set_header  Host              ${AUTH_SERVICE_HOST};
+        proxy_set_header  X-Real-IP         $remote_addr;
+        proxy_set_header  X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header  X-Forwarded-Proto $scheme;
     }
 
     # ── Analytics Service ─────────────────────────────────────────────────────
@@ -59,12 +55,14 @@ server {
         add_header 'Access-Control-Allow-Origin'  '${FRONTEND_URL}' always;
         add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, PATCH, OPTIONS' always;
         add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type' always;
-        set $analytics ${ANALYTICS_SERVICE_URL};
-        proxy_pass       $analytics;
-        proxy_set_header Host              $proxy_host;
-        proxy_set_header X-Real-IP         $remote_addr;
-        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+
+        set $upstream ${ANALYTICS_SERVICE_URL};
+        proxy_pass        $upstream;
+        proxy_ssl_name    ${ANALYTICS_SERVICE_HOST};
+        proxy_set_header  Host              ${ANALYTICS_SERVICE_HOST};
+        proxy_set_header  X-Real-IP         $remote_addr;
+        proxy_set_header  X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header  X-Forwarded-Proto $scheme;
     }
 
     # ── Tracking Service - WebSocket ──────────────────────────────────────────
@@ -77,13 +75,15 @@ server {
             return 204;
         }
         add_header 'Access-Control-Allow-Origin' '${FRONTEND_URL}' always;
-        set $tracking ${TRACKING_SERVICE_URL};
-        proxy_pass          $tracking;
-        proxy_http_version  1.1;
-        proxy_set_header    Upgrade     $http_upgrade;
-        proxy_set_header    Connection  "upgrade";
-        proxy_set_header    Host        $proxy_host;
-        proxy_cache_bypass  $http_upgrade;
+
+        set $upstream ${TRACKING_SERVICE_URL};
+        proxy_pass         $upstream;
+        proxy_ssl_name     ${TRACKING_SERVICE_HOST};
+        proxy_http_version 1.1;
+        proxy_set_header   Upgrade           $http_upgrade;
+        proxy_set_header   Connection        "upgrade";
+        proxy_set_header   Host              ${TRACKING_SERVICE_HOST};
+        proxy_cache_bypass $http_upgrade;
     }
 
     # ── Tracking Service - REST ───────────────────────────────────────────────
@@ -98,12 +98,14 @@ server {
         add_header 'Access-Control-Allow-Origin'  '${FRONTEND_URL}' always;
         add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, PATCH, OPTIONS' always;
         add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type' always;
-        set $tracking ${TRACKING_SERVICE_URL};
-        proxy_pass       $tracking;
-        proxy_set_header Host              $proxy_host;
-        proxy_set_header X-Real-IP         $remote_addr;
-        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+
+        set $upstream ${TRACKING_SERVICE_URL};
+        proxy_pass        $upstream;
+        proxy_ssl_name    ${TRACKING_SERVICE_HOST};
+        proxy_set_header  Host              ${TRACKING_SERVICE_HOST};
+        proxy_set_header  X-Real-IP         $remote_addr;
+        proxy_set_header  X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header  X-Forwarded-Proto $scheme;
     }
 
     # ── Incident Service - catch-all ──────────────────────────────────────────
@@ -118,11 +120,13 @@ server {
         add_header 'Access-Control-Allow-Origin'  '${FRONTEND_URL}' always;
         add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, PATCH, OPTIONS' always;
         add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type' always;
-        set $incident ${INCIDENT_SERVICE_URL};
-        proxy_pass       $incident;
-        proxy_set_header Host              $proxy_host;
-        proxy_set_header X-Real-IP         $remote_addr;
-        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+
+        set $upstream ${INCIDENT_SERVICE_URL};
+        proxy_pass        $upstream;
+        proxy_ssl_name    ${INCIDENT_SERVICE_HOST};
+        proxy_set_header  Host              ${INCIDENT_SERVICE_HOST};
+        proxy_set_header  X-Real-IP         $remote_addr;
+        proxy_set_header  X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header  X-Forwarded-Proto $scheme;
     }
 }
