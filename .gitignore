@@ -1,0 +1,15 @@
+/analytics-service/node_modules
+/incident-service/node_modules
+/auth-service/node_modules
+/frontend/node_modules
+/analytics-service/.env
+/incident-service/.env
+/auth-service/.env
+/frontend/.env
+/tracking-service/node_modules
+/tracking-service/.env
+/tracking-service/.env.example
+/analytics-service/.env.example
+/incident-service/.env.example
+/auth-service/.env.example
+/frontend/.env.example

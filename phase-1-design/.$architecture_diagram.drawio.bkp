@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
+  <root>
+    <mxCell id="0" />
+    <mxCell id="1" parent="0" />
+
+    <!-- TITLE -->
+    <mxCell id="title" value="Emergency Response System — Microservice Architecture" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=1;fontColor=#E8EAF0;" vertex="1" parent="1">
+      <mxGeometry x="200" y="20" width="1200" height="40" as="geometry" />
+    </mxCell>
+
+    <!-- ═══════════════════════════════════════════════ -->
+    <!-- REACT FRONTEND -->
+    <!-- ═══════════════════════════════════════════════ -->
+    <mxCell id="frontend_bg" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1a6b8a;strokeColor=#4a6080;fontColor=#E8EAF0;arcSize=5;" vertex="1" parent="1">
+      <mxGeometry x="100" y="80" width="1420" height="110" as="geometry" />
+    </mxCell>
+    <mxCell id="frontend_label" value="REACT FRONTEND (Port 5173)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=14;fontStyle=1;fontColor=#E8EAF0;" vertex="1" parent="1">
+      <mxGeometry x="100" y="80" width="1420" height="30" as="geometry" />
+    </mxCell>
+    <mxCell id="ui_login" value="Login / Dashboard" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1f5f7a;strokeColor=#4a6080;fontColor=#E8EAF0;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="130" y="120" width="300" height="55" as="geometry" />
+    </mxCell>
+    <mxCell id="ui_incident" value="Incident Form" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1f5f7a;strokeColor=#4a6080;fontColor=#E8EAF0;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="460" y="120" width="300" height="55" as="geometry" />
+    </mxCell>
+    <mxCell id="ui_map" value="Live Map (WebSocket)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1f5f7a;strokeColor=#4a6080;fontColor=#E8EAF0;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="790" y="120" width="300" height="55" as="geometry" />
+    </mxCell>
+    <mxCell id="ui_analytics" value="Analytics Dashboard" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1f5f7a;strokeColor=#4a6080;fontColor=#E8EAF0;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="1120" y="120" width="300" height="55" as="geometry" />
+    </mxCell>
+
+    <!-- HTTPS Arrow Frontend to Gateway -->
+    <mxCell id="arr_fe_gw" value="HTTPS / WSS" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#7ecbff;fontColor=#7ecbff;fontSize=10;" edge="1" source="frontend_bg" target="gateway_bg" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- ═══════════════════════════════════════════════ -->
+    <!-- API GATEWAY -->
+    <!-- ═══════════════════════════════════════════════ -->
+    <mxCell id="gateway_bg" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#7b4f8e;strokeColor=#4a6080;fontColor=#E8EAF0;arcSize=5;" vertex="1" parent="1">
+      <mxGeometry x="100" y="240" width="1420" height="130" as="geometry" />
+    </mxCell>
+    <mxCell id="gateway_label" value="API GATEWAY — nginx reverse proxy (Port 80)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=14;fontStyle=1;fontColor=#E8EAF0;" vertex="1" parent="1">
+      <mxGeometry x="100" y="240" width="1420" height="30" as="geometry" />
+    </mxCell>
+    <mxCell id="gateway_routes" value="• /api/v1/auth/* → Auth Service :3001&#xa;• /api/v1/hospitals/*, /ambulances/*, /police-*, /fire-* → Responder Service :3002&#xa;• /api/v1/incidents/* → Incident Service :3003&#xa;• /api/v1/vehicles/* → Tracking Service :3004 | /socket.io/* → Tracking Service :3004 (WS)&#xa;• /api/v1/analytics/* → Analytics Service :3005" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontColor=#b0c4de;" vertex="1" parent="1">
+      <mxGeometry x="130" y="275" width="1360" height="90" as="geometry" />
+    </mxCell>
+
+    <!-- ═══════════════════════════════════════════════ -->
+    <!-- SERVICES ROW -->
+    <!-- ═══════════════════════════════════════════════ -->
+
+    <!-- Auth Service -->
+    <mxCell id="svc_auth" value="AUTH SERVICE&#xa;Port 3001" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e4d6b;strokeColor=#4a6080;fontColor=#E8EAF0;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="100" y="440" width="220" height="100" as="geometry" />
+    </mxCell>
+    <mxCell id="arr_gw_auth" value="" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#7ecbff;" edge="1" source="gateway_bg" target="svc_auth" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- Responder Service -->
+    <mxCell id="svc_responder" value="RESPONDER MGMT&#xa;SERVICE&#xa;Port 3002" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e4d6b;strokeColor=#4a6080;fontColor=#E8EAF0;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="380" y="440" width="220" height="100" as="geometry" />
+    </mxCell>
+    <mxCell id="arr_gw_resp" value="" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#7ecbff;" edge="1" source="gateway_bg" target="svc_responder" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- Incident Service -->
+    <mxCell id="svc_incident" value="INCIDENT SERVICE&#xa;Port 3003" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e4d6b;strokeColor=#4a6080;fontColor=#E8EAF0;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="660" y="440" width="220" height="100" as="geometry" />
+    </mxCell>
+    <mxCell id="arr_gw_inc" value="" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#7ecbff;" edge="1" source="gateway_bg" target="svc_incident" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- Tracking Service -->
+    <mxCell id="svc_tracking" value="DISPATCH &amp; TRACKING&#xa;SERVICE&#xa;Port 3004" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e4d6b;strokeColor=#4a6080;fontColor=#E8EAF0;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="940" y="440" width="220" height="100" as="geometry" />
+    </mxCell>
+    <mxCell id="arr_gw_track" value="" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#7ecbff;" edge="1" source="gateway_bg" target="svc_tracking" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- Analytics Service -->
+    <mxCell id="svc_analytics" value="ANALYTICS SERVICE&#xa;Port 3005" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e4d6b;strokeColor=#4a6080;fontColor=#E8EAF0;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="1220" y="440" width="220" height="100" as="geometry" />
+    </mxCell>
+    <mxCell id="arr_gw_anal" value="" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#7ecbff;" edge="1" source="gateway_bg" target="svc_analytics" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- ═══════════════════════════════════════════════ -->
+    <!-- DATABASES ROW -->
+    <!-- ═══════════════════════════════════════════════ -->
+    <mxCell id="db_auth" value="auth_db&#xa;MongoDB" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#2d5a27;strokeColor=#4a6080;fontColor=#E8EAF0;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="125" y="600" width="170" height="90" as="geometry" />
+    </mxCell>
+    <mxCell id="arr_auth_db" value="" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#6db86d;" edge="1" source="svc_auth" target="db_auth" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <mxCell id="db_responder" value="responder_db&#xa;MongoDB" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#2d5a27;strokeColor=#4a6080;fontColor=#E8EAF0;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="405" y="600" width="170" height="90" as="geometry" />
+    </mxCell>
+    <mxCell id="arr_resp_db" value="" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#6db86d;" edge="1" source="svc_responder" target="db_responder" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <mxCell id="db_incident" value="incident_db&#xa;MongoDB" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#2d5a27;strokeColor=#4a6080;fontColor=#E8EAF0;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="685" y="600" width="170" height="90" as="geometry" />
+    </mxCell>
+    <mxCell id="arr_inc_db" value="" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#6db86d;" edge="1" source="svc_incident" target="db_incident" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <mxCell id="db_tracking" value="tracking_db&#xa;MongoDB" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#2d5a27;strokeColor=#4a6080;fontColor=#E8EAF0;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="965" y="600" width="170" height="90" as="geometry" />
+    </mxCell>
+    <mxCell id="arr_track_db" value="" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#6db86d;" edge="1" source="svc_tracking" target="db_tracking" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <mxCell id="db_analytics" value="analytics_db&#xa;MongoDB" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#2d5a27;strokeColor=#4a6080;fontColor=#E8EAF0;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="1245" y="600" width="170" height="90" as="geometry" />
+    </mxCell>
+    <mxCell id="arr_anal_db" value="" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#6db86d;" edge="1" source="svc_analytics" target="db_analytics" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- ═══════════════════════════════════════════════ -->
+    <!-- INTER-SERVICE HTTP: Incident ↔ Responder -->
+    <!-- ═══════════════════════════════════════════════ -->
+    <mxCell id="arr_inc_resp" value="HTTP GET nearest responder" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#ff9f43;fontColor=#ff9f43;fontSize=10;endArrow=block;startArrow=block;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="svc_incident" target="svc_responder" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- ═══════════════════════════════════════════════ -->
+    <!-- RABBITMQ BROKER -->
+    <!-- ═══════════════════════════════════════════════ -->
+    <mxCell id="rabbitmq_bg" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#c45f17;strokeColor=#4a6080;arcSize=5;opacity=90;" vertex="1" parent="1">
+      <mxGeometry x="200" y="760" width="1200" height="200" as="geometry" />
+    </mxCell>
+    <mxCell id="rabbitmq_label" value="RABBITMQ BROKER  (Port 5672)  |  Management UI: Port 15672" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=14;fontStyle=1;fontColor=#E8EAF0;" vertex="1" parent="1">
+      <mxGeometry x="200" y="760" width="1200" height="35" as="geometry" />
+    </mxCell>
+
+    <!-- Exchange 1 box -->
+    <mxCell id="exch1" value="Exchange: incident.events (topic, durable)&#xa;&#xa;incident.created       → Analytics&#xa;incident.dispatched    → Analytics, Tracking&#xa;incident.resolved      → Analytics&#xa;incident.status_changed → Analytics" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#a04010;strokeColor=#e07040;fontColor=#FFE0B2;fontSize=10;align=left;" vertex="1" parent="1">
+      <mxGeometry x="220" y="805" width="530" height="140" as="geometry" />
+    </mxCell>
+
+    <!-- Exchange 2 box -->
+    <mxCell id="exch2" value="Exchange: tracking.events (topic, durable)&#xa;&#xa;vehicle.location_updated → Analytics&#xa;vehicle.arrived          → Incident Service" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#a04010;strokeColor=#e07040;fontColor=#FFE0B2;fontSize=10;align=left;" vertex="1" parent="1">
+      <mxGeometry x="800" y="805" width="530" height="140" as="geometry" />
+    </mxCell>
+
+    <!-- ═══════════════════════════════════════════════ -->
+    <!-- ARROWS: Services → RabbitMQ -->
+    <!-- ═══════════════════════════════════════════════ -->
+    <mxCell id="arr_inc_mq" value="publishes&#xa;incident events" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#ff6b6b;fontColor=#ff6b6b;fontSize=9;" edge="1" source="svc_incident" target="rabbitmq_bg" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="arr_track_mq" value="publishes&#xa;vehicle events" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#ff6b6b;fontColor=#ff6b6b;fontSize=9;" edge="1" source="svc_tracking" target="rabbitmq_bg" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- ═══════════════════════════════════════════════ -->
+    <!-- ARROWS: RabbitMQ → Services (consume) -->
+    <!-- ═══════════════════════════════════════════════ -->
+    <mxCell id="arr_mq_anal" value="consumes all events" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#a29bfe;fontColor=#a29bfe;fontSize=9;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=1;entryDx=0;entryDy=0;" edge="1" source="rabbitmq_bg" target="svc_analytics" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="1500" y="860" />
+          <mxPoint x="1500" y="490" />
+        </Array>
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="arr_mq_inc" value="vehicle.arrived" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#55efc4;fontColor=#55efc4;fontSize=9;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=1;entryDx=0;entryDy=0;" edge="1" source="rabbitmq_bg" target="svc_incident" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="100" y="860" />
+          <mxPoint x="100" y="490" />
+        </Array>
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="arr_mq_track_disp" value="incident.dispatched" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#74b9ff;fontColor=#74b9ff;fontSize=9;" edge="1" source="rabbitmq_bg" target="svc_tracking" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- ═══════════════════════════════════════════════ -->
+    <!-- LEGEND -->
+    <!-- ═══════════════════════════════════════════════ -->
+    <mxCell id="legend_bg" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#161b22;strokeColor=#3a4a5c;" vertex="1" parent="1">
+      <mxGeometry x="100" y="990" width="1420" height="80" as="geometry" />
+    </mxCell>
+    <mxCell id="leg_title" value="Legend:" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=11;fontStyle=1;fontColor=#566880;" vertex="1" parent="1">
+      <mxGeometry x="120" y="995" width="100" height="30" as="geometry" />
+    </mxCell>
+    <mxCell id="leg1" value="→ HTTP / HTTPS (sync)" style="text;html=1;strokeColor=#7ecbff;fillColor=none;align=center;verticalAlign=middle;fontSize=10;fontColor=#7ecbff;" vertex="1" parent="1">
+      <mxGeometry x="220" y="995" width="200" height="30" as="geometry" />
+    </mxCell>
+    <mxCell id="leg2" value="→ Publish to RabbitMQ (async)" style="text;html=1;strokeColor=#ff6b6b;fillColor=none;align=center;verticalAlign=middle;fontSize=10;fontColor=#ff6b6b;" vertex="1" parent="1">
+      <mxGeometry x="440" y="995" width="240" height="30" as="geometry" />
+    </mxCell>
+    <mxCell id="leg3" value="→ Consume from RabbitMQ" style="text;html=1;strokeColor=#a29bfe;fillColor=none;align=center;verticalAlign=middle;fontSize=10;fontColor=#a29bfe;" vertex="1" parent="1">
+      <mxGeometry x="700" y="995" width="220" height="30" as="geometry" />
+    </mxCell>
+    <mxCell id="leg4" value="→ Database Connection" style="text;html=1;strokeColor=#6db86d;fillColor=none;align=center;verticalAlign=middle;fontSize=10;fontColor=#6db86d;" vertex="1" parent="1">
+      <mxGeometry x="940" y="995" width="200" height="30" as="geometry" />
+    </mxCell>
+    <mxCell id="leg5" value="↔ HTTP sync (bidirectional)" style="text;html=1;strokeColor=#ff9f43;fillColor=none;align=center;verticalAlign=middle;fontSize=10;fontColor=#ff9f43;" vertex="1" parent="1">
+      <mxGeometry x="1160" y="995" width="220" height="30" as="geometry" />
+    </mxCell>
+
+    <!-- Tech notes row -->
+    <mxCell id="tech_notes" value="MongoDB: Native GeoJSON + 2dsphere for geospatial queries  |  RabbitMQ: Durable topic exchanges — decoupled analytics  |  Socket.io: Real-time bidirectional GPS with room support  |  nginx: Single entry point, TLS termination" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=9;fontColor=#566880;" vertex="1" parent="1">
+      <mxGeometry x="100" y="1030" width="1420" height="30" as="geometry" />
+    </mxCell>
+
+  </root>
+</mxGraphModel>

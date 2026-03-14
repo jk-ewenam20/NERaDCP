@@ -1,0 +1,111 @@
+version: '3.9'
+
+services:
+
+  # ── Message Broker ───────────────────────────────────────────────────────────
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    ports:
+      - "5672:5672"       # AMQP
+      - "15672:15672"     # Management UI (guest/guest)
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Microservice 1: Identity & Authentication Service ────────────────────────
+  auth-db:
+    image: mongo:7
+    volumes:
+      - auth_db_data:/data/db
+
+  auth-service:
+    build: ./auth-service
+    ports:
+      - "3001:3001"
+    environment:
+      PORT: 3001
+      MONGODB_URI: mongodb://auth-db:27017/auth_db
+      JWT_SECRET: ${JWT_SECRET:-emergencyResponseJwtSecret2025}
+      JWT_ACCESS_EXPIRES_IN: 15m
+      JWT_REFRESH_EXPIRES_IN: 7d
+      NODE_ENV: development
+    depends_on:
+      - auth-db
+
+  # ── Microservice 2: Emergency Incident Service ────────────────────────────────
+  # Handles incidents, nearest responder selection, and responder management
+  incident-db:
+    image: mongo:7
+    volumes:
+      - incident_db_data:/data/db
+
+  incident-service:
+    build: ./incident-service
+    ports:
+      - "3002:3002"
+    environment:
+      PORT: 3002
+      MONGODB_URI: mongodb://incident-db:27017/incident_db
+      JWT_SECRET: ${JWT_SECRET:-emergencyResponseJwtSecret2025}
+      RABBITMQ_URL: amqp://rabbitmq
+      NODE_ENV: development
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      incident-db:
+        condition: service_started
+
+  # ── Microservice 3: Dispatch & Tracking Service ───────────────────────────────
+  tracking-db:
+    image: mongo:7
+    volumes:
+      - tracking_db_data:/data/db
+
+  tracking-service:
+    build: ./tracking-service
+    ports:
+      - "3003:3003"
+    environment:
+      PORT: 3003
+      MONGODB_URI: mongodb://tracking-db:27017/tracking_db
+      JWT_SECRET: ${JWT_SECRET:-emergencyResponseJwtSecret2025}
+      RABBITMQ_URL: amqp://rabbitmq
+      NODE_ENV: development
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      tracking-db:
+        condition: service_started
+
+  # ── Microservice 4: Analytics & Monitoring Service ────────────────────────────
+  analytics-db:
+    image: mongo:7
+    volumes:
+      - analytics_db_data:/data/db
+
+  analytics-service:
+    build: ./analytics-service
+    ports:
+      - "3004:3004"
+    environment:
+      PORT: 3004
+      MONGODB_URI: mongodb://analytics-db:27017/analytics_db
+      JWT_SECRET: ${JWT_SECRET:-emergencyResponseJwtSecret2025}
+      RABBITMQ_URL: amqp://rabbitmq
+      NODE_ENV: development
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      analytics-db:
+        condition: service_started
+
+volumes:
+  rabbitmq_data:
+  auth_db_data:
+  incident_db_data:
+  tracking_db_data:
+  analytics_db_data:
