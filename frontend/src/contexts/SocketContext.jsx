@@ -13,7 +13,7 @@ export function SocketProvider({ children }) {
     if (!user) return;
 
     const token = localStorage.getItem('accessToken');
-    const wsUrl = import.meta.env.VITE_API_BASE_URL || '/';
+    const wsUrl = import.meta.env.VITE_TRACKING_URL || import.meta.env.VITE_API_BASE_URL || '/';
 
     const socket = io(wsUrl, {
       path: '/socket.io',
