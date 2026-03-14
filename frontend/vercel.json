@@ -1,3 +1,24 @@
 {
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  "routes": [
+    {
+      "src": "/api/v1/auth/(.*)",
+      "dest": "https://neradcp-auth.onrender.com/api/v1/auth/$1"
+    },
+    {
+      "src": "/api/v1/analytics/(.*)",
+      "dest": "https://neradcp-analytics.onrender.com/api/v1/analytics/$1"
+    },
+    {
+      "src": "/api/v1/tracking/(.*)",
+      "dest": "https://neradcp-tracking.onrender.com/api/v1/tracking/$1"
+    },
+    {
+      "src": "/api/v1/(.*)",
+      "dest": "https://neradcp-incident.onrender.com/api/v1/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
+  ]
 }
