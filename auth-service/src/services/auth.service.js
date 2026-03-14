@@ -134,6 +134,25 @@ async function getProfile(userId) {
   return user.toSafeObject();
 }
 
+async function changePassword(userId, { currentPassword, newPassword }) {
+  const user = await User.findById(userId);
+  if (!user) {
+    const err = new Error('User not found');
+    err.status = 404;
+    err.code = 'USER_NOT_FOUND';
+    throw err;
+  }
+  const valid = await user.comparePassword(currentPassword);
+  if (!valid) {
+    const err = new Error('Current password is incorrect');
+    err.status = 401;
+    err.code = 'INVALID_PASSWORD';
+    throw err;
+  }
+  user.passwordHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
+  await user.save();
+}
+
 async function updateProfile(userId, { name }) {
   const user = await User.findByIdAndUpdate(
     userId,
@@ -199,6 +218,7 @@ module.exports = {
   logout,
   getProfile,
   updateProfile,
+  changePassword,
   listUsers,
   getUserById,
   setUserStatus,

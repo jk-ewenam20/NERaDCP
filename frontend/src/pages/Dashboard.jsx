@@ -138,7 +138,7 @@ function HospitalAdminDashboard({ user }) {
       </div>
 
       {/* Stat cards — full width */}
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard icon={RiCarLine}   label="Available Ambulances" value={available}  color="text-emerald-600" bg="bg-emerald-50" />
         <StatCard icon={RiPulseLine} label="Deployed"             value={dispatched} color="text-amber-600"   bg="bg-amber-50" />
         <StatCard icon={RiAlertLine} label="Open Medical Calls"   value={openCalls}  color="text-red-600"     bg="bg-red-50" />

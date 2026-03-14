@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import {
   RiHospitalLine, RiCarLine, RiShieldLine, RiFireLine,
-  RiAddLine, RiRefreshLine, RiUserLine,
+  RiAddLine, RiRefreshLine, RiUserLine, RiEditLine,
 } from 'react-icons/ri';
 import Badge from '../components/UI/Badge';
 import LoadingSpinner from '../components/UI/LoadingSpinner';
@@ -12,20 +12,19 @@ import IncidentMapPicker from '../components/Map/IncidentMapPicker';
 import {
   listHospitals, listAmbulances, listPoliceStations, listFireStations,
   createHospital, createAmbulance, createPoliceStation, createFireStation,
-  assignAmbulanceDriver,
+  assignAmbulanceDriver, updateHospitalCapacity,
 } from '../api/resources.api';
-import { listUsers } from '../api/auth.api';
+import { listDrivers } from '../api/auth.api';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
 
-const TABS = [
-  { id: 'hospitals',       label: 'Hospitals',       icon: RiHospitalLine, color: 'text-emerald-600' },
-  { id: 'ambulances',      label: 'Ambulances',       icon: RiCarLine,      color: 'text-emerald-600' },
-  { id: 'police-stations', label: 'Police Stations',  icon: RiShieldLine,   color: 'text-blue-600' },
-  { id: 'fire-stations',   label: 'Fire Stations',    icon: RiFireLine,     color: 'text-orange-600' },
+const ALL_TABS = [
+  { id: 'hospitals',        label: 'Hospitals',      icon: RiHospitalLine, color: 'text-emerald-600' },
+  { id: 'ambulances',       label: 'Ambulances',     icon: RiCarLine,      color: 'text-emerald-600' },
+  { id: 'police-stations',  label: 'Police Stations',icon: RiShieldLine,   color: 'text-blue-600' },
+  { id: 'fire-stations',    label: 'Fire Stations',  icon: RiFireLine,     color: 'text-orange-600' },
 ];
 
-// Map: tab id → incident type colour for the map pin
 const TAB_PIN_TYPE = {
   hospitals:        'medical',
   ambulances:       'medical',
@@ -33,14 +32,36 @@ const TAB_PIN_TYPE = {
   'fire-stations':  'fire',
 };
 
+// Which tabs each role can see
+function visibleTabs(role) {
+  if (role === 'system_admin')  return ALL_TABS;
+  if (role === 'hospital_admin') return ALL_TABS.filter((t) => t.id === 'hospitals' || t.id === 'ambulances');
+  if (role === 'police_admin')  return ALL_TABS.filter((t) => t.id === 'police-stations');
+  if (role === 'fire_admin')    return ALL_TABS.filter((t) => t.id === 'fire-stations');
+  return ALL_TABS;
+}
+
+// Filter items client-side for org-scoped admins
+function filterByOrg(tab, items, user) {
+  if (user?.role === 'system_admin') return items;
+  const orgId = String(user?.organizationId ?? '');
+  if (!orgId) return items;
+  if (tab === 'hospitals')       return items.filter((h) => String(h._id) === orgId);
+  if (tab === 'ambulances')      return items.filter((a) => String(a.hospitalId?._id ?? a.hospitalId) === orgId);
+  if (tab === 'police-stations') return items.filter((s) => String(s._id) === orgId);
+  if (tab === 'fire-stations')   return items.filter((s) => String(s._id) === orgId);
+  return items;
+}
+
 export default function Resources() {
   const { user } = useAuth();
-  const [tab, setTab] = useState('hospitals');
+  const tabs = visibleTabs(user?.role);
+  const [tab, setTab] = useState(tabs[0]?.id ?? 'hospitals');
   const [data, setData] = useState({});
   const [loading, setLoading] = useState(false);
   const [addModal, setAddModal] = useState(false);
 
-  const isAdmin = user?.role === 'system_admin';
+  const isSystemAdmin = user?.role === 'system_admin';
 
   async function load(t = tab) {
     setLoading(true);
@@ -69,13 +90,14 @@ export default function Resources() {
 
   useEffect(() => { load(); }, [tab]);
 
-  const items = data[tab] ?? [];
+  const allItems = data[tab] ?? [];
+  const items = filterByOrg(tab, allItems, user);
 
   return (
     <div className="space-y-4">
       {/* Tabs */}
       <div className="flex gap-1 bg-white rounded-xl p-1.5 shadow-sm border border-slate-100 overflow-x-auto">
-        {TABS.map(({ id, label, icon: Icon, color }) => (
+        {tabs.map(({ id, label, icon: Icon, color }) => (
           <button
             key={id}
             onClick={() => setTab(id)}
@@ -97,7 +119,7 @@ export default function Resources() {
           <button onClick={() => load()} className="text-slate-400 hover:text-slate-600 p-2 rounded-lg hover:bg-white transition">
             <RiRefreshLine />
           </button>
-          {isAdmin && (
+          {isSystemAdmin && (
             <button
               onClick={() => setAddModal(true)}
               className="flex items-center gap-1.5 bg-blue-600 text-white text-sm font-medium px-3 py-2 rounded-lg hover:bg-blue-700 transition"
@@ -116,15 +138,15 @@ export default function Resources() {
           <EmptyState message={`No ${tab.replace('-', ' ')} found`} />
         ) : (
           <div className="overflow-x-auto">
-            {tab === 'hospitals'       && <HospitalsTable items={items} />}
+            {tab === 'hospitals'       && <HospitalsTable items={items} user={user} onRefresh={() => load()} />}
             {tab === 'ambulances'      && <AmbulancesTable items={items} onRefresh={() => load()} />}
-            {tab === 'police-stations' && <StationsTable items={items} label="Police Station" />}
-            {tab === 'fire-stations'   && <StationsTable items={items} label="Fire Station" />}
+            {tab === 'police-stations' && <StationsTable items={items} />}
+            {tab === 'fire-stations'   && <StationsTable items={items} />}
           </div>
         )}
       </div>
 
-      {/* Add modal — size lg to fit the map */}
+      {/* Add modal */}
       <Modal
         open={addModal}
         onClose={() => setAddModal(false)}
@@ -144,47 +166,111 @@ export default function Resources() {
 
 // ── Tables ────────────────────────────────────────────────────────────────────
 
-function HospitalsTable({ items }) {
+function HospitalsTable({ items, user, onRefresh }) {
+  const isHospitalAdmin = user?.role === 'hospital_admin';
+  const [editTarget, setEditTarget] = useState(null);
+  const [beds, setBeds] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  function openEdit(h) {
+    setEditTarget(h);
+    setBeds(String(h.availableBeds ?? 0));
+  }
+
+  async function handleSaveBeds() {
+    setSaving(true);
+    try {
+      await updateHospitalCapacity(editTarget._id, parseInt(beds));
+      toast.success('Bed capacity updated');
+      setEditTarget(null);
+      onRefresh();
+    } catch (err) {
+      toast.error(err.response?.data?.error?.message ?? 'Failed to update');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const inputCls = 'w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white';
+
   return (
-    <table className="w-full text-sm">
-      <thead>
-        <tr className="bg-slate-50 text-slate-500 text-xs uppercase">
-          <th className="text-left px-5 py-3 font-medium">Name</th>
-          <th className="text-left px-5 py-3 font-medium hidden md:table-cell">Address</th>
-          <th className="text-left px-5 py-3 font-medium">Beds</th>
-          <th className="text-left px-5 py-3 font-medium">Status</th>
-        </tr>
-      </thead>
-      <tbody className="divide-y divide-slate-50">
-        {items.map((h) => (
-          <tr key={h._id} className="hover:bg-slate-50">
-            <td className="px-5 py-3 font-medium text-slate-800">{h.name}</td>
-            <td className="px-5 py-3 text-slate-500 hidden md:table-cell">{h.address}</td>
-            <td className="px-5 py-3">
-              <span className="text-slate-700 font-medium">{h.availableBeds}</span>
-              <span className="text-slate-400"> / {h.totalBeds}</span>
-            </td>
-            <td className="px-5 py-3"><Badge value={h.status ?? 'active'} /></td>
+    <>
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="bg-slate-50 text-slate-500 text-xs uppercase">
+            <th className="text-left px-5 py-3 font-medium">Name</th>
+            <th className="text-left px-5 py-3 font-medium hidden md:table-cell">Address</th>
+            <th className="text-left px-5 py-3 font-medium">Beds</th>
+            <th className="text-left px-5 py-3 font-medium">Status</th>
+            {isHospitalAdmin && <th className="px-5 py-3" />}
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody className="divide-y divide-slate-50">
+          {items.map((h) => (
+            <tr key={h._id} className="hover:bg-slate-50">
+              <td className="px-5 py-3 font-medium text-slate-800">{h.name}</td>
+              <td className="px-5 py-3 text-slate-500 hidden md:table-cell">{h.address}</td>
+              <td className="px-5 py-3">
+                <span className="text-slate-700 font-medium">{h.availableBeds}</span>
+                <span className="text-slate-400"> / {h.totalBeds}</span>
+              </td>
+              <td className="px-5 py-3"><Badge value={h.status ?? 'active'} /></td>
+              {isHospitalAdmin && (
+                <td className="px-5 py-3 text-right">
+                  <button
+                    onClick={() => openEdit(h)}
+                    className="flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition"
+                  >
+                    <RiEditLine className="text-xs" /> Update Beds
+                  </button>
+                </td>
+              )}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <Modal open={!!editTarget} onClose={() => setEditTarget(null)} title={`Update Bed Capacity — ${editTarget?.name ?? ''}`}>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1.5 uppercase tracking-wide">
+              Available Beds (currently {editTarget?.availableBeds} of {editTarget?.totalBeds})
+            </label>
+            <input
+              type="number"
+              min="0"
+              max={editTarget?.totalBeds}
+              value={beds}
+              onChange={(e) => setBeds(e.target.value)}
+              className={inputCls}
+            />
+          </div>
+          <div className="flex gap-3">
+            <button type="button" onClick={() => setEditTarget(null)}
+              className="flex-1 border border-slate-200 text-slate-600 text-sm font-medium py-2.5 rounded-lg hover:bg-slate-50 transition">
+              Cancel
+            </button>
+            <button onClick={handleSaveBeds} disabled={saving}
+              className="flex-1 bg-blue-600 text-white text-sm font-medium py-2.5 rounded-lg hover:bg-blue-700 disabled:opacity-60 transition">
+              {saving ? 'Saving…' : 'Save'}
+            </button>
+          </div>
+        </div>
+      </Modal>
+    </>
   );
 }
 
 function AmbulancesTable({ items, onRefresh }) {
   const [drivers, setDrivers] = useState([]);
-  const [target, setTarget] = useState(null);      // ambulance being (re)assigned
+  const [target, setTarget] = useState(null);
   const [selectedDriver, setSelectedDriver] = useState('');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    listUsers()
-      .then((res) => {
-        const all = res.data?.data?.users ?? [];
-        setDrivers(all.filter((u) => u.role === 'ambulance_driver'));
-      })
-      .catch(() => {}); // supplementary — silent failure
+    listDrivers()
+      .then((res) => setDrivers(res.data?.data?.users ?? []))
+      .catch(() => {});
   }, []);
 
   function driverName(driverId) {
@@ -261,7 +347,6 @@ function AmbulancesTable({ items, onRefresh }) {
         </tbody>
       </table>
 
-      {/* Driver assignment modal */}
       <Modal
         open={!!target}
         onClose={() => setTarget(null)}
@@ -291,18 +376,12 @@ function AmbulancesTable({ items, onRefresh }) {
             )}
           </div>
           <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={() => setTarget(null)}
-              className="flex-1 border border-slate-200 text-slate-600 text-sm font-medium py-2.5 rounded-lg hover:bg-slate-50 transition"
-            >
+            <button type="button" onClick={() => setTarget(null)}
+              className="flex-1 border border-slate-200 text-slate-600 text-sm font-medium py-2.5 rounded-lg hover:bg-slate-50 transition">
               Cancel
             </button>
-            <button
-              onClick={handleAssign}
-              disabled={saving}
-              className="flex-1 bg-blue-600 text-white text-sm font-medium py-2.5 rounded-lg hover:bg-blue-700 disabled:opacity-60 transition"
-            >
+            <button onClick={handleAssign} disabled={saving}
+              className="flex-1 bg-blue-600 text-white text-sm font-medium py-2.5 rounded-lg hover:bg-blue-700 disabled:opacity-60 transition">
               {saving ? 'Saving…' : 'Confirm'}
             </button>
           </div>
@@ -349,13 +428,11 @@ function AddForm({ tab, pinType, onSuccess, onClose }) {
 
   function f(k, v) { setForm((p) => ({ ...p, [k]: v })); }
 
-  // Address search selected → fill address field + move map pin
   const handleAddressSelect = useCallback(({ lat, lng }) => {
     setForm((p) => ({ ...p, latitude: lat, longitude: lng }));
     setExternalPin({ lat, lng });
   }, []);
 
-  // Map clicked → fill coordinates
   const handleMapSelect = useCallback(({ lat, lng }) => {
     setForm((p) => ({ ...p, latitude: lat, longitude: lng }));
   }, []);
@@ -375,10 +452,10 @@ function AddForm({ tab, pinType, onSuccess, onClose }) {
         ...(form.totalBeds     && { totalBeds:     parseInt(form.totalBeds) }),
         ...(form.availableBeds && { availableBeds: parseInt(form.availableBeds) }),
       };
-      if (tab === 'hospitals')        await createHospital(payload);
-      else if (tab === 'ambulances')  await createAmbulance(payload);
+      if (tab === 'hospitals')           await createHospital(payload);
+      else if (tab === 'ambulances')     await createAmbulance(payload);
       else if (tab === 'police-stations') await createPoliceStation(payload);
-      else                            await createFireStation(payload);
+      else                               await createFireStation(payload);
       toast.success('Created successfully');
       onSuccess();
     } catch (err) {
@@ -394,7 +471,6 @@ function AddForm({ tab, pinType, onSuccess, onClose }) {
 
   return (
     <form onSubmit={submit} className="space-y-4">
-      {/* Name */}
       {tab !== 'ambulances' && (
         <div>
           <label className={labelCls}>Name</label>
@@ -408,7 +484,6 @@ function AddForm({ tab, pinType, onSuccess, onClose }) {
         </div>
       )}
 
-      {/* Vehicle number (ambulances only) */}
       {tab === 'ambulances' && (
         <div>
           <label className={labelCls}>Vehicle Number</label>
@@ -422,7 +497,6 @@ function AddForm({ tab, pinType, onSuccess, onClose }) {
         </div>
       )}
 
-      {/* Address search + map */}
       {showMap && (
         <>
           <div>
@@ -434,13 +508,11 @@ function AddForm({ tab, pinType, onSuccess, onClose }) {
               placeholder="Search location — e.g. Kaneshie Police Station, Accra"
             />
           </div>
-
           <IncidentMapPicker
             onLocationSelect={handleMapSelect}
             incidentType={pinType}
             externalPin={externalPin}
           />
-
           {form.latitude && (
             <p className="text-xs text-slate-400 -mt-2">
               Pinned: {parseFloat(form.latitude).toFixed(6)}, {parseFloat(form.longitude).toFixed(6)}
@@ -449,7 +521,6 @@ function AddForm({ tab, pinType, onSuccess, onClose }) {
         </>
       )}
 
-      {/* Region (stations only) */}
       {(tab === 'police-stations' || tab === 'fire-stations') && (
         <div>
           <label className={labelCls}>Region</label>
@@ -463,7 +534,6 @@ function AddForm({ tab, pinType, onSuccess, onClose }) {
         </div>
       )}
 
-      {/* Hospital beds */}
       {tab === 'hospitals' && (
         <div className="grid grid-cols-2 gap-3">
           <div>
@@ -479,7 +549,6 @@ function AddForm({ tab, pinType, onSuccess, onClose }) {
         </div>
       )}
 
-      {/* Contact phone */}
       <div>
         <label className={labelCls}>Contact Phone</label>
         <input
@@ -491,7 +560,6 @@ function AddForm({ tab, pinType, onSuccess, onClose }) {
         />
       </div>
 
-      {/* Actions */}
       <div className="flex gap-3 pt-1">
         <button type="button" onClick={onClose}
           className="flex-1 border border-slate-200 text-slate-600 text-sm font-medium py-2.5 rounded-lg hover:bg-slate-50 transition">

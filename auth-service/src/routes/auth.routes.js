@@ -189,6 +189,38 @@ router.put(
   controller.updateProfile
 );
 
+/**
+ * @swagger
+ * /api/v1/auth/profile/password:
+ *   put:
+ *     summary: Change own password
+ *     tags: [Auth]
+ *     security: [{ bearerAuth: [] }]
+ */
+router.put(
+  '/profile/password',
+  authenticate,
+  [
+    body('currentPassword').notEmpty().withMessage('Current password is required'),
+    body('newPassword').isLength({ min: 8 }).withMessage('New password must be at least 8 characters'),
+  ],
+  validate,
+  controller.changePassword
+);
+
+/**
+ * @swagger
+ * /api/v1/auth/drivers:
+ *   get:
+ *     summary: List all ambulance drivers (accessible to any authenticated user)
+ *     tags: [Users]
+ *     security: [{ bearerAuth: [] }]
+ *     responses:
+ *       200:
+ *         description: List of ambulance driver accounts
+ */
+router.get('/drivers', authenticate, controller.listDrivers);
+
 // ── System Admin only ─────────────────────────────────────────────────────────
 
 /**

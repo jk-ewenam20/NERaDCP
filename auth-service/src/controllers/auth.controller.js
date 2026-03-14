@@ -62,6 +62,24 @@ async function updateProfile(req, res) {
   }
 }
 
+async function changePassword(req, res) {
+  try {
+    await authService.changePassword(req.user.userId, req.body);
+    res.json({ success: true, data: { message: 'Password changed successfully' } });
+  } catch (err) {
+    handleError(res, err);
+  }
+}
+
+async function listDrivers(req, res) {
+  try {
+    const result = await authService.listUsers({ role: 'ambulance_driver', limit: 200 });
+    res.json({ success: true, data: result });
+  } catch (err) {
+    handleError(res, err);
+  }
+}
+
 async function listUsers(req, res) {
   try {
     const { page, limit, role } = req.query;
@@ -110,6 +128,8 @@ module.exports = {
   logout,
   getProfile,
   updateProfile,
+  changePassword,
+  listDrivers,
   listUsers,
   getUserById,
   setUserStatus,

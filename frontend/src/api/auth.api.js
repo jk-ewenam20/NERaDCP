@@ -15,8 +15,14 @@ export const getProfile = () =>
 export const updateProfile = (payload) =>
   api.put('/auth/profile', payload);
 
+export const listDrivers = () =>
+  api.get('/auth/drivers');
+
 export const listUsers = () =>
   api.get('/auth/users');
+
+export const changePassword = (currentPassword, newPassword) =>
+  api.put('/auth/profile/password', { currentPassword, newPassword });
 
 export const updateUserStatus = (id, isActive) =>
   api.put(`/auth/users/${id}/status`, { isActive });

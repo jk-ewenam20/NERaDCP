@@ -2,6 +2,7 @@ import { NavLink } from 'react-router-dom';
 import {
   RiDashboardLine, RiAlertLine, RiMapPinLine, RiBarChartLine,
   RiHospitalLine, RiShieldLine, RiLogoutBoxLine, RiMenu3Line, RiCloseLine,
+  RiUserLine,
 } from 'react-icons/ri';
 import { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -13,6 +14,7 @@ const NAV = [
   { to: '/analytics',  icon: RiBarChartLine,  label: 'Analytics',  adminOnly: true },
   { to: '/resources',  icon: RiHospitalLine,  label: 'Resources' },
   { to: '/users',      icon: RiShieldLine,    label: 'Users',      adminOnly: true },
+  { to: '/profile',    icon: RiUserLine,      label: 'My Profile' },
 ];
 
 export default function Sidebar() {
