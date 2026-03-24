@@ -134,6 +134,6 @@ router.delete('/:id', authenticate, authorize('system_admin'), ctrl.remove);
  *       404:
  *         description: Hospital not found
  */
-router.put('/:id/capacity', authenticate, authorize('hospital_admin'), ctrl.updateCapacity);
+router.put('/:id/capacity', authenticate, authorize('system_admin', 'hospital_admin'), ctrl.updateCapacity);
 
 module.exports = router;

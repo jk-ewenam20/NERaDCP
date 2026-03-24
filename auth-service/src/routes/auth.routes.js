@@ -293,6 +293,46 @@ router.get(
 
 /**
  * @swagger
+ * /api/v1/auth/users/{id}:
+ *   put:
+ *     summary: Update a user's name or email (admin)
+ *     tags: [Users]
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name: { type: string }
+ *               email: { type: string, format: email }
+ *     responses:
+ *       200:
+ *         description: User updated
+ *       404:
+ *         description: User not found
+ */
+router.put(
+  '/users/:id',
+  authenticate,
+  authorize('system_admin'),
+  [
+    param('id').isMongoId().withMessage('Invalid user ID'),
+    body('name').optional().trim().notEmpty().withMessage('Name cannot be blank'),
+    body('email').optional().isEmail().normalizeEmail().withMessage('Valid email required'),
+  ],
+  validate,
+  controller.updateUser
+);
+
+/**
+ * @swagger
  * /api/v1/auth/users/{id}/status:
  *   put:
  *     summary: Activate or deactivate a user

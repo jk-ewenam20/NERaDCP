@@ -24,6 +24,9 @@ export const listUsers = () =>
 export const changePassword = (currentPassword, newPassword) =>
   api.put('/auth/profile/password', { currentPassword, newPassword });
 
+export const updateUser = (id, payload) =>
+  api.put(`/auth/users/${id}`, payload);
+
 export const updateUserStatus = (id, isActive) =>
   api.put(`/auth/users/${id}/status`, { isActive });
 

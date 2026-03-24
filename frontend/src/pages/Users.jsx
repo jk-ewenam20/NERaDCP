@@ -7,6 +7,7 @@ import {
   RiCheckboxCircleLine,
   RiCloseCircleLine,
   RiDeleteBinLine,
+  RiEditLine,
 } from "react-icons/ri";
 import Badge from "../components/UI/Badge";
 import LoadingSpinner from "../components/UI/LoadingSpinner";
@@ -15,6 +16,7 @@ import Modal from "../components/UI/Modal";
 import {
   listUsers,
   updateUserStatus,
+  updateUser,
   deleteUser,
   register,
 } from "../api/auth.api";
@@ -43,6 +45,7 @@ export default function Users() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [addModal, setAddModal] = useState(false);
+  const [editTarget, setEditTarget] = useState(null);
 
   async function load() {
     setLoading(true);
@@ -153,6 +156,13 @@ export default function Users() {
                     <td className="px-5 py-3 text-right">
                       <div className="flex items-center justify-end gap-1">
                         <button
+                          onClick={() => setEditTarget(u)}
+                          title="Edit"
+                          className="p-1.5 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition"
+                        >
+                          <RiEditLine className="text-base" />
+                        </button>
+                        <button
                           onClick={() => toggleStatus(u._id, u.isActive)}
                           title={u.isActive ? "Deactivate" : "Activate"}
                           className={`p-1.5 rounded-lg transition ${
@@ -199,7 +209,81 @@ export default function Users() {
           }}
         />
       </Modal>
+
+      {/* Edit user modal */}
+      <Modal
+        open={!!editTarget}
+        onClose={() => setEditTarget(null)}
+        title={`Edit User — ${editTarget?.name ?? ''}`}
+      >
+        <EditUserForm
+          target={editTarget}
+          onSuccess={() => { setEditTarget(null); load(); }}
+          onClose={() => setEditTarget(null)}
+        />
+      </Modal>
     </div>
+  );
+}
+
+function EditUserForm({ target, onSuccess, onClose }) {
+  const [form, setForm] = useState({ name: target?.name ?? '', email: target?.email ?? '' });
+  const [saving, setSaving] = useState(false);
+
+  // Keep form in sync if target changes
+  useEffect(() => {
+    if (target) setForm({ name: target.name ?? '', email: target.email ?? '' });
+  }, [target?._id]);
+
+  const inputCls =
+    "w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white";
+
+  async function submit(e) {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await updateUser(target._id, { name: form.name, email: form.email });
+      toast.success("User updated");
+      onSuccess();
+    } catch (err) {
+      toast.error(err.response?.data?.error?.message ?? "Failed to update user");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <form onSubmit={submit} className="space-y-3">
+      <div>
+        <label className="block text-xs font-medium text-slate-600 mb-1 uppercase tracking-wide">Full Name</label>
+        <input
+          required
+          value={form.name}
+          onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
+          className={inputCls}
+        />
+      </div>
+      <div>
+        <label className="block text-xs font-medium text-slate-600 mb-1 uppercase tracking-wide">Email</label>
+        <input
+          required
+          type="email"
+          value={form.email}
+          onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
+          className={inputCls}
+        />
+      </div>
+      <div className="flex gap-3 pt-1">
+        <button type="button" onClick={onClose}
+          className="flex-1 border border-slate-200 text-slate-600 text-sm font-medium py-2.5 rounded-lg hover:bg-slate-50 transition">
+          Cancel
+        </button>
+        <button type="submit" disabled={saving}
+          className="flex-1 bg-blue-600 text-white text-sm font-medium py-2.5 rounded-lg hover:bg-blue-700 disabled:opacity-60 transition">
+          {saving ? "Saving…" : "Save"}
+        </button>
+      </div>
+    </form>
   );
 }
 

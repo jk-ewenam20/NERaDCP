@@ -13,6 +13,7 @@ import {
   listHospitals, listAmbulances, listPoliceStations, listFireStations,
   createHospital, createAmbulance, createPoliceStation, createFireStation,
   assignAmbulanceDriver, updateHospitalCapacity,
+  updateHospital, updatePoliceStation, updateFireStation,
 } from '../api/resources.api';
 import { listDrivers } from '../api/auth.api';
 import { useAuth } from '../contexts/AuthContext';
@@ -140,8 +141,8 @@ export default function Resources() {
           <div className="overflow-x-auto">
             {tab === 'hospitals'       && <HospitalsTable items={items} user={user} onRefresh={() => load()} />}
             {tab === 'ambulances'      && <AmbulancesTable items={items} onRefresh={() => load()} />}
-            {tab === 'police-stations' && <StationsTable items={items} />}
-            {tab === 'fire-stations'   && <StationsTable items={items} />}
+            {tab === 'police-stations' && <StationsTable items={items} user={user} tab={tab} onRefresh={() => load()} />}
+            {tab === 'fire-stations'   && <StationsTable items={items} user={user} tab={tab} onRefresh={() => load()} />}
           </div>
         )}
       </div>
@@ -168,27 +169,51 @@ export default function Resources() {
 
 function HospitalsTable({ items, user, onRefresh }) {
   const isHospitalAdmin = user?.role === 'hospital_admin';
-  const [editTarget, setEditTarget] = useState(null);
-  const [beds, setBeds] = useState('');
-  const [saving, setSaving] = useState(false);
+  const isSystemAdmin   = user?.role === 'system_admin';
+  const canEditBeds     = isHospitalAdmin || isSystemAdmin;
 
-  function openEdit(h) {
-    setEditTarget(h);
-    setBeds(String(h.availableBeds ?? 0));
+  // Beds modal
+  const [bedsTarget, setBedsTarget] = useState(null);
+  const [beds, setBeds] = useState('');
+  const [savingBeds, setSavingBeds] = useState(false);
+
+  // Info edit modal (system_admin only)
+  const [infoTarget, setInfoTarget] = useState(null);
+  const [infoForm, setInfoForm] = useState({});
+  const [savingInfo, setSavingInfo] = useState(false);
+
+  function openBeds(h) { setBedsTarget(h); setBeds(String(h.availableBeds ?? 0)); }
+  function openInfo(h) {
+    setInfoTarget(h);
+    setInfoForm({ name: h.name, address: h.address ?? '', contactPhone: h.contactPhone ?? '', contactEmail: h.contactEmail ?? '', totalBeds: String(h.totalBeds ?? 0) });
   }
 
   async function handleSaveBeds() {
-    setSaving(true);
+    setSavingBeds(true);
     try {
-      await updateHospitalCapacity(editTarget._id, parseInt(beds));
+      await updateHospitalCapacity(bedsTarget._id, parseInt(beds));
       toast.success('Bed capacity updated');
-      setEditTarget(null);
+      setBedsTarget(null);
       onRefresh();
     } catch (err) {
       toast.error(err.response?.data?.error?.message ?? 'Failed to update');
-    } finally {
-      setSaving(false);
-    }
+    } finally { setSavingBeds(false); }
+  }
+
+  async function handleSaveInfo(e) {
+    e.preventDefault();
+    setSavingInfo(true);
+    try {
+      await updateHospital(infoTarget._id, {
+        ...infoForm,
+        totalBeds: parseInt(infoForm.totalBeds) || undefined,
+      });
+      toast.success('Hospital updated');
+      setInfoTarget(null);
+      onRefresh();
+    } catch (err) {
+      toast.error(err.response?.data?.error?.message ?? 'Failed to update');
+    } finally { setSavingInfo(false); }
   }
 
   const inputCls = 'w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white';
@@ -202,7 +227,7 @@ function HospitalsTable({ items, user, onRefresh }) {
             <th className="text-left px-5 py-3 font-medium hidden md:table-cell">Address</th>
             <th className="text-left px-5 py-3 font-medium">Beds</th>
             <th className="text-left px-5 py-3 font-medium">Status</th>
-            {isHospitalAdmin && <th className="px-5 py-3" />}
+            {canEditBeds && <th className="px-5 py-3" />}
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-50">
@@ -215,14 +240,24 @@ function HospitalsTable({ items, user, onRefresh }) {
                 <span className="text-slate-400"> / {h.totalBeds}</span>
               </td>
               <td className="px-5 py-3"><Badge value={h.status ?? 'active'} /></td>
-              {isHospitalAdmin && (
+              {canEditBeds && (
                 <td className="px-5 py-3 text-right">
-                  <button
-                    onClick={() => openEdit(h)}
-                    className="flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition"
-                  >
-                    <RiEditLine className="text-xs" /> Update Beds
-                  </button>
+                  <div className="flex items-center justify-end gap-1.5">
+                    <button
+                      onClick={() => openBeds(h)}
+                      className="flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition"
+                    >
+                      <RiEditLine className="text-xs" /> Beds
+                    </button>
+                    {isSystemAdmin && (
+                      <button
+                        onClick={() => openInfo(h)}
+                        className="flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition"
+                      >
+                        <RiEditLine className="text-xs" /> Edit Info
+                      </button>
+                    )}
+                  </div>
                 </td>
               )}
             </tr>
@@ -230,32 +265,65 @@ function HospitalsTable({ items, user, onRefresh }) {
         </tbody>
       </table>
 
-      <Modal open={!!editTarget} onClose={() => setEditTarget(null)} title={`Update Bed Capacity — ${editTarget?.name ?? ''}`}>
+      {/* Beds modal */}
+      <Modal open={!!bedsTarget} onClose={() => setBedsTarget(null)} title={`Update Bed Capacity — ${bedsTarget?.name ?? ''}`}>
         <div className="space-y-4">
           <div>
             <label className="block text-xs font-medium text-slate-600 mb-1.5 uppercase tracking-wide">
-              Available Beds (currently {editTarget?.availableBeds} of {editTarget?.totalBeds})
+              Available Beds (currently {bedsTarget?.availableBeds} of {bedsTarget?.totalBeds})
             </label>
-            <input
-              type="number"
-              min="0"
-              max={editTarget?.totalBeds}
-              value={beds}
-              onChange={(e) => setBeds(e.target.value)}
-              className={inputCls}
-            />
+            <input type="number" min="0" max={bedsTarget?.totalBeds} value={beds}
+              onChange={(e) => setBeds(e.target.value)} className={inputCls} />
           </div>
           <div className="flex gap-3">
-            <button type="button" onClick={() => setEditTarget(null)}
+            <button type="button" onClick={() => setBedsTarget(null)}
               className="flex-1 border border-slate-200 text-slate-600 text-sm font-medium py-2.5 rounded-lg hover:bg-slate-50 transition">
               Cancel
             </button>
-            <button onClick={handleSaveBeds} disabled={saving}
+            <button onClick={handleSaveBeds} disabled={savingBeds}
               className="flex-1 bg-blue-600 text-white text-sm font-medium py-2.5 rounded-lg hover:bg-blue-700 disabled:opacity-60 transition">
-              {saving ? 'Saving…' : 'Save'}
+              {savingBeds ? 'Saving…' : 'Save'}
             </button>
           </div>
         </div>
+      </Modal>
+
+      {/* Info edit modal */}
+      <Modal open={!!infoTarget} onClose={() => setInfoTarget(null)} title={`Edit Hospital — ${infoTarget?.name ?? ''}`}>
+        <form onSubmit={handleSaveInfo} className="space-y-3">
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1 uppercase tracking-wide">Name</label>
+            <input required value={infoForm.name ?? ''} onChange={(e) => setInfoForm((p) => ({ ...p, name: e.target.value }))} className={inputCls} />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1 uppercase tracking-wide">Address</label>
+            <input value={infoForm.address ?? ''} onChange={(e) => setInfoForm((p) => ({ ...p, address: e.target.value }))} className={inputCls} />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1 uppercase tracking-wide">Contact Phone</label>
+              <input value={infoForm.contactPhone ?? ''} onChange={(e) => setInfoForm((p) => ({ ...p, contactPhone: e.target.value }))} className={inputCls} />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1 uppercase tracking-wide">Total Beds</label>
+              <input type="number" min="0" value={infoForm.totalBeds ?? ''} onChange={(e) => setInfoForm((p) => ({ ...p, totalBeds: e.target.value }))} className={inputCls} />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1 uppercase tracking-wide">Contact Email</label>
+            <input type="email" value={infoForm.contactEmail ?? ''} onChange={(e) => setInfoForm((p) => ({ ...p, contactEmail: e.target.value }))} className={inputCls} />
+          </div>
+          <div className="flex gap-3 pt-1">
+            <button type="button" onClick={() => setInfoTarget(null)}
+              className="flex-1 border border-slate-200 text-slate-600 text-sm font-medium py-2.5 rounded-lg hover:bg-slate-50 transition">
+              Cancel
+            </button>
+            <button type="submit" disabled={savingInfo}
+              className="flex-1 bg-blue-600 text-white text-sm font-medium py-2.5 rounded-lg hover:bg-blue-700 disabled:opacity-60 transition">
+              {savingInfo ? 'Saving…' : 'Save'}
+            </button>
+          </div>
+        </form>
       </Modal>
     </>
   );
@@ -391,28 +459,114 @@ function AmbulancesTable({ items, onRefresh }) {
   );
 }
 
-function StationsTable({ items }) {
+function StationsTable({ items, user, tab, onRefresh }) {
+  const isSystemAdmin = user?.role === 'system_admin';
+  const isPoliceAdmin = user?.role === 'police_admin';
+  const isFireAdmin   = user?.role === 'fire_admin';
+  const canEdit = isSystemAdmin
+    || (tab === 'police-stations' && isPoliceAdmin)
+    || (tab === 'fire-stations'   && isFireAdmin);
+
+  const [editTarget, setEditTarget] = useState(null);
+  const [form, setForm] = useState({});
+  const [saving, setSaving] = useState(false);
+
+  function openEdit(s) {
+    setEditTarget(s);
+    setForm({ name: s.name, address: s.address ?? '', region: s.region ?? '', contactPhone: s.contactPhone ?? '' });
+  }
+
+  function canEditStation(s) {
+    if (isSystemAdmin) return true;
+    // Org admins can only edit their own station
+    return String(s._id) === String(user?.organizationId);
+  }
+
+  async function handleSave(e) {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      if (tab === 'police-stations') await updatePoliceStation(editTarget._id, form);
+      else                           await updateFireStation(editTarget._id, form);
+      toast.success('Station updated');
+      setEditTarget(null);
+      onRefresh();
+    } catch (err) {
+      toast.error(err.response?.data?.error?.message ?? 'Failed to update');
+    } finally { setSaving(false); }
+  }
+
+  const inputCls = 'w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white';
+
   return (
-    <table className="w-full text-sm">
-      <thead>
-        <tr className="bg-slate-50 text-slate-500 text-xs uppercase">
-          <th className="text-left px-5 py-3 font-medium">Name</th>
-          <th className="text-left px-5 py-3 font-medium hidden md:table-cell">Address</th>
-          <th className="text-left px-5 py-3 font-medium hidden md:table-cell">Region</th>
-          <th className="text-left px-5 py-3 font-medium">Status</th>
-        </tr>
-      </thead>
-      <tbody className="divide-y divide-slate-50">
-        {items.map((s) => (
-          <tr key={s._id} className="hover:bg-slate-50">
-            <td className="px-5 py-3 font-medium text-slate-800">{s.name}</td>
-            <td className="px-5 py-3 text-slate-500 hidden md:table-cell">{s.address}</td>
-            <td className="px-5 py-3 text-slate-500 hidden md:table-cell">{s.region}</td>
-            <td className="px-5 py-3"><Badge value={s.status ?? 'active'} /></td>
+    <>
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="bg-slate-50 text-slate-500 text-xs uppercase">
+            <th className="text-left px-5 py-3 font-medium">Name</th>
+            <th className="text-left px-5 py-3 font-medium hidden md:table-cell">Address</th>
+            <th className="text-left px-5 py-3 font-medium hidden md:table-cell">Region</th>
+            <th className="text-left px-5 py-3 font-medium">Status</th>
+            {canEdit && <th className="px-5 py-3" />}
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody className="divide-y divide-slate-50">
+          {items.map((s) => (
+            <tr key={s._id} className="hover:bg-slate-50">
+              <td className="px-5 py-3 font-medium text-slate-800">{s.name}</td>
+              <td className="px-5 py-3 text-slate-500 hidden md:table-cell">{s.address}</td>
+              <td className="px-5 py-3 text-slate-500 hidden md:table-cell">{s.region}</td>
+              <td className="px-5 py-3"><Badge value={s.status ?? 'active'} /></td>
+              {canEdit && (
+                <td className="px-5 py-3 text-right">
+                  {canEditStation(s) && (
+                    <button
+                      onClick={() => openEdit(s)}
+                      className="flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition"
+                    >
+                      <RiEditLine className="text-xs" /> Edit
+                    </button>
+                  )}
+                </td>
+              )}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <Modal open={!!editTarget} onClose={() => setEditTarget(null)} title={`Edit Station — ${editTarget?.name ?? ''}`}>
+        <form onSubmit={handleSave} className="space-y-3">
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1 uppercase tracking-wide">Name</label>
+            <input required value={form.name ?? ''} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} className={inputCls} />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1 uppercase tracking-wide">Address</label>
+            <input value={form.address ?? ''} onChange={(e) => setForm((p) => ({ ...p, address: e.target.value }))} className={inputCls} />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1 uppercase tracking-wide">Region</label>
+              <input value={form.region ?? ''} onChange={(e) => setForm((p) => ({ ...p, region: e.target.value }))} className={inputCls} />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1 uppercase tracking-wide">Contact Phone</label>
+              <input value={form.contactPhone ?? ''} onChange={(e) => setForm((p) => ({ ...p, contactPhone: e.target.value }))} className={inputCls} />
+            </div>
+          </div>
+          <div className="flex gap-3 pt-1">
+            <button type="button" onClick={() => setEditTarget(null)}
+              className="flex-1 border border-slate-200 text-slate-600 text-sm font-medium py-2.5 rounded-lg hover:bg-slate-50 transition">
+              Cancel
+            </button>
+            <button type="submit" disabled={saving}
+              className="flex-1 bg-blue-600 text-white text-sm font-medium py-2.5 rounded-lg hover:bg-blue-700 disabled:opacity-60 transition">
+              {saving ? 'Saving…' : 'Save'}
+            </button>
+          </div>
+        </form>
+      </Modal>
+    </>
   );
 }
 

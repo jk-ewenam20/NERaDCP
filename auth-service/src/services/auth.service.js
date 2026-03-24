@@ -200,6 +200,20 @@ async function setUserStatus(id, isActive) {
   return user;
 }
 
+async function updateUserById(id, { name, email }) {
+  const update = {};
+  if (name !== undefined) update.name = name;
+  if (email !== undefined) update.email = email;
+  const user = await User.findByIdAndUpdate(id, update, { new: true, runValidators: true }).select('-passwordHash');
+  if (!user) {
+    const err = new Error('User not found');
+    err.status = 404;
+    err.code = 'USER_NOT_FOUND';
+    throw err;
+  }
+  return user;
+}
+
 async function deleteUser(id) {
   const user = await User.findByIdAndDelete(id);
   if (!user) {
@@ -221,6 +235,7 @@ module.exports = {
   changePassword,
   listUsers,
   getUserById,
+  updateUserById,
   setUserStatus,
   deleteUser,
 };

@@ -18,6 +18,7 @@ export default function Layout() {
   const { user } = useAuth();
   const location = useLocation();
   const [incidentModalOpen, setIncidentModalOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   if (!user) return <Navigate to="/login" replace />;
 
@@ -25,7 +26,7 @@ export default function Layout() {
 
   return (
     <div className="flex h-screen bg-slate-100 overflow-hidden">
-      <Sidebar />
+      <Sidebar collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed((c) => !c)} />
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
         <Navbar title={title} onNewIncident={() => setIncidentModalOpen(true)} />
         <main className="flex-1 overflow-y-auto p-4 lg:p-6">

@@ -103,6 +103,15 @@ async function getUserById(req, res) {
   }
 }
 
+async function updateUser(req, res) {
+  try {
+    const user = await authService.updateUserById(req.params.id, req.body);
+    res.json({ success: true, data: { user } });
+  } catch (err) {
+    handleError(res, err);
+  }
+}
+
 async function setUserStatus(req, res) {
   try {
     const user = await authService.setUserStatus(req.params.id, req.body.isActive);
@@ -132,6 +141,7 @@ module.exports = {
   listDrivers,
   listUsers,
   getUserById,
+  updateUser,
   setUserStatus,
   deleteUser,
 };
