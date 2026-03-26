@@ -8,7 +8,7 @@ const CSS = `
 
   .login-root {
     min-height: 100vh;
-    background: #06060e;
+    background: #f1f5f9;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -31,7 +31,7 @@ const CSS = `
   .wm-row {
     font-family: 'Bebas Neue', sans-serif;
     font-size: clamp(2.4rem, 5vw, 4rem);
-    color: rgba(255,255,255,0.022);
+    color: rgba(15,23,42,0.03);
     white-space: nowrap;
     letter-spacing: 0.12em;
     line-height: 1.15;
@@ -47,7 +47,7 @@ const CSS = `
   .ring {
     position: absolute;
     border-radius: 50%;
-    border: 1px solid rgba(220, 38, 38, 0.22);
+    border: 1px solid rgba(220, 38, 38, 0.18);
     top: 50%; left: 50%;
     transform: translate(-50%, -50%) scale(0.3);
     opacity: 0;
@@ -101,7 +101,7 @@ const CSS = `
   .display-heading {
     font-family: 'Bebas Neue', sans-serif;
     font-size: clamp(3.8rem, 10vw, 5rem);
-    color: #ffffff;
+    color: #1e293b;
     line-height: 0.88;
     letter-spacing: 0.02em;
     margin: 0;
@@ -112,10 +112,10 @@ const CSS = `
   .field-wrap { position: relative; }
   .field-label {
     display: block;
-    font-size: 9px;
-    font-weight: 500;
-    color: rgba(255,255,255,0.3);
-    letter-spacing: 0.22em;
+    font-size: 10.5px;
+    font-weight: 600;
+    color: rgba(15,23,42,0.7);
+    letter-spacing: 0.18em;
     text-transform: uppercase;
     margin-bottom: 10px;
   }
@@ -123,8 +123,8 @@ const CSS = `
     width: 100%;
     background: transparent;
     border: none;
-    border-bottom: 1px solid rgba(255,255,255,0.1);
-    color: #fff;
+    border-bottom: 1px solid rgba(15,23,42,0.15);
+    color: #1e293b;
     font-family: 'JetBrains Mono', monospace;
     font-size: 0.875rem;
     font-weight: 300;
@@ -134,13 +134,13 @@ const CSS = `
     box-sizing: border-box;
   }
   .field-input:focus { border-bottom-color: #ef4444; }
-  .field-input::placeholder { color: rgba(255,255,255,0.18); }
+  .field-input::placeholder { color: rgba(15,23,42,0.35); }
   /* Kill autofill background */
   .field-input:-webkit-autofill,
   .field-input:-webkit-autofill:focus {
-    -webkit-box-shadow: 0 0 0 1000px #06060e inset;
-    -webkit-text-fill-color: #ffffff;
-    caret-color: #ffffff;
+    -webkit-box-shadow: 0 0 0 1000px #f1f5f9 inset;
+    -webkit-text-fill-color: #1e293b;
+    caret-color: #1e293b;
   }
 
   .show-toggle {
@@ -150,11 +150,11 @@ const CSS = `
     font-size: 9px;
     font-weight: 500;
     letter-spacing: 0.18em;
-    color: rgba(255,255,255,0.25);
+    color: rgba(15,23,42,0.45);
     padding: 0;
     transition: color 0.2s;
   }
-  .show-toggle:hover { color: rgba(255,255,255,0.6); }
+  .show-toggle:hover { color: rgba(15,23,42,0.75); }
 
   /* ── Submit button ── */
   .submit-btn {
@@ -199,7 +199,7 @@ const CSS = `
   .status-text {
     font-size: 9px;
     letter-spacing: 0.2em;
-    color: rgba(255,255,255,0.2);
+    color: rgba(15,23,42,0.35);
     text-transform: uppercase;
   }
 `;
@@ -255,7 +255,7 @@ export default function Login() {
             <div className="hex-badge">
               <div className="hex-badge-inner" />
             </div>
-            <span style={{ fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.22em', textTransform: 'uppercase' }}>
+            <span style={{ fontSize: 10, fontWeight: 500, color: 'rgba(15,23,42,0.45)', letterSpacing: '0.22em', textTransform: 'uppercase' }}>
               GH · ERS · DISPATCH
             </span>
           </div>
@@ -265,7 +265,7 @@ export default function Login() {
             Emergency<br />
             <span>Command</span>
           </h1>
-          <p className="appear d3" style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', letterSpacing: '0.2em', textTransform: 'uppercase', margin: '12px 0 44px' }}>
+          <p className="appear d3" style={{ fontSize: 10, color: 'rgba(15,23,42,0.4)', letterSpacing: '0.2em', textTransform: 'uppercase', margin: '12px 0 44px' }}>
             Authorised Access Only
           </p>
 
