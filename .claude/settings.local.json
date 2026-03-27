@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(for service:*)",
+      "Bash(do echo:*)",
+      "Read(//c/Users/Jonathan Ewenam/Documents/mobile-web software-design-architecture/course-project/$service/**)",
+      "Bash(done)"
+    ]
+  }
+}
