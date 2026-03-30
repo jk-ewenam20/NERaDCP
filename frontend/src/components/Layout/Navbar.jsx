@@ -7,7 +7,7 @@ export default function Navbar({ title, onNewIncident }) {
   const { user } = useAuth();
 
   return (
-    <header className="bg-white border-b border-slate-100 px-6 py-3 flex items-center justify-between flex-shrink-0">
+    <header className="relative z-10 bg-white border-b border-slate-100 px-6 py-3 flex items-center justify-between flex-shrink-0">
       <h1 className="text-lg font-semibold text-slate-800 pl-10 lg:pl-0">{title}</h1>
 
       <div className="flex items-center gap-3">
